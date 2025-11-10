@@ -1,0 +1,15 @@
+[Unit]
+Description=Messaging trigger for connection
+After=network.target
+
+[Service]
+Type=simple
+
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+
+ExecStart=/usr/local/bin/trigger_messenger.sh
+
+User=root
+Group=root

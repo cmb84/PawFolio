@@ -1,0 +1,12 @@
+{
+    "name": "moodvies/frontend",
+    "description": "Frontend PHP bridge with RabbitMQ integration",
+    "require": {
+        "php-amqplib/php-amqplib": "^3.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Moodvies\\": "src/"
+        }
+    }
+}

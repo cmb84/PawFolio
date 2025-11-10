@@ -1,0 +1,13 @@
+[Unit]
+Description=Socket to trigger messaging service
+
+[Socket]
+ListenStream=0.0.0.0:9101
+Accept=no
+SocketMode=0666
+ReusePort=yes
+FreeBind=yes
+
+
+[Install]
+WantedBy=sockets.target
