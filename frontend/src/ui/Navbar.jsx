@@ -11,54 +11,25 @@ export default function Navbar() {
   }
 
   return (
-    <div className="nav-wrap">
-      <header className="nav" role="navigation" aria-label="Main">
-        {/* Left side: brand */}
-        <Link to="/" className="brand brand-logo-only" aria-label="Moodvies Home">
-          <img className="brand-logo" src="/logo.png" alt="Moodvies logo" loading="eager" />
-        </Link>
-
-        {/* Right side: links + sign in/out */}
-        <div className="nav-right">
-          <nav className="nav-links">
-            {!isAuthenticated ? (
-              <>
-                <NavLink
-                  to="/"
-                  className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-                >
-                  Home
-                </NavLink>
-                <NavLink
-                  to="/about"
-                  className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-                >
-                  About
-                </NavLink>
-              </>
-            ) : (
-              <NavLink
-                to="/dashboard"
-                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-              >
-                Dashboard
-              </NavLink>
-            )}
-          </nav>
-
-          <div className="nav-actions">
-            {!isAuthenticated ? (
-              <Link to="/login" className="btn btn-signin">
-                Sign In
-              </Link>
-            ) : (
-              <button className="btn btn-signin" onClick={handleLogout}>
-                Logout
-              </button>
-            )}
-          </div>
+    <nav className="navbar">
+      <div className="nav-inner">
+        <Link to="/" className="brand">🐾 PawCloud</Link>
+        <div className="nav-links">
+          <NavLink to="/" end>Home</NavLink>
+          <NavLink to="/dashboard">My Pets</NavLink>
+          <NavLink to="/about">About</NavLink>
         </div>
-      </header>
-    </div>
+        <div className="nav-auth">
+          {isAuthenticated ? (
+            <button className="btn" onClick={handleLogout}>Logout</button>
+          ) : (
+            <>
+              <NavLink className="btn" to="/login">Login</NavLink>
+              <NavLink className="btn btn-primary" to="/signup">Sign up</NavLink>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
   );
 }

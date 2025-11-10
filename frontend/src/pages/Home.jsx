@@ -1,62 +1,146 @@
-import FeaturesRow from "../ui/FeaturesRow";
-import { Link, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthProvider";
 
 export default function Home() {
-  const { user, loading } = useAuth();
-  const nav = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [potd, setPotd] = useState(null);
+  const [pets, setPets] = useState([]);
+  const { user } = useAuth();
+
+  async function fetchPotd() {
+    const r = await fetch("/api/pet_of_the_day.php", { credentials: "include" });
+    const j = await r.json();
+    if (j.ok) setPotd(j.pet || null);
+  }
+
+  async function fetchPets() {
+    const r = await fetch("/api/pets_list.php", { credentials: "include" });
+    const j = await r.json();
+    if (j.ok) setPets(j.pets || []);
+  }
 
   useEffect(() => {
-    if (!loading && user) {
-      nav("/dashboard", { replace: true });
-    }
-  }, [loading, user, nav]);
+    (async () => {
+      await Promise.all([fetchPotd(), fetchPets()]);
+      setLoading(false);
+    })();
+  }, []);
+
+  if (loading) return <div style={{ textAlign: "center", padding: "2rem" }}>Loading…</div>;
 
   return (
-    <main className="page home">
-      <section className="hero">
-        <div className="hero-inner">
-          <div className="hero-left">
-            <h1 className="hero-title">
-              Give us your <span className="accent">mood</span>,<br />
-              we give you<br />
-              the <span className="accent">movies</span>
-            </h1>
+    <div className="page">
+      <header className="hero">
+        <div className="container">
+          <h1 className="hero-title">
+            Welcome{user?.username ? `, ${user.username}` : ""} to <span className="accent">PawCloud</span>
+          </h1>
+          <p className="hero-sub">Browse adorable pets, upload your own, and react with emojis!</p>
+        </div>
+      </header>
 
-            <div className="search" role="search">
-              <input
-                type="text"
-                placeholder=" "
-                aria-label="Enter a mood"
-              />
-              <div className="ph" aria-hidden="true">
-                <span className="ph-white">Enter a </span>
-                <span className="ph-accent">mood</span>
+      <main className="container">
+        <section className="card">
+          <div className="card-header">
+            <h3>🐶 Pet of the Day</h3>
+          </div>
+          <div className="card-body">
+            {potd ? (
+              <div className="potd">
+                <img className="potd-img" src={potd.imageUrl} alt={potd.name} />
+                <div className="potd-meta">
+                  <h4>{potd.name} <span className="badge">{potd.species}</span></h4>
+                  <p>{potd.description || "No description yet."}</p>
+                </div>
               </div>
-
-              <Link
-                to={user ? "/dashboard" : "/login"}
-                className="btn-cta"
-                role="button"
-              >
-                Find Movies
-              </Link>
-            </div>
+            ) : (
+              <p>No pets yet—be the first to upload!</p>
+            )}
           </div>
+        </section>
 
-          <div className="hero-right" aria-hidden="true">
-            <div className="posters">
-              <img className="poster" src="https://image.tmdb.org/t/p/w500/1hRoyzDtpgMU7Dz4JF22RANzQO7.jpg" alt="The Dark Knight" />
-              <img className="poster" src="https://image.tmdb.org/t/p/w500/2H1TmgdfNtsKlU9jKdeNyYL5y8T.jpg" alt="Inside Out" />
-              <img className="poster" src="https://image.tmdb.org/t/p/w500/udDclJoHjfjb8Ekgsd4FDteOkCU.jpg" alt="Joker" />
-              <img className="poster" src="https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg" alt="The Shawshank Redemption" />
-            </div>
+        <UploadCard onUploaded={async () => { await fetchPotd(); await fetchPets(); }} />
+
+        <section>
+          <h3 className="section-title">Gallery</h3>
+          <div className="grid">
+            {pets.map((p) => (
+              <div key={p.id} className="pet-card">
+                <img src={p.imageUrl} alt={p.name} />
+                <div className="pet-meta">
+                  <h4>{p.name}</h4>
+                  <div className="row">
+                    <span className="badge">{p.species}</span>
+                    <span className="byline">by @{p.username}</span>
+                  </div>
+                  {p.description ? <p>{p.description}</p> : null}
+                </div>
+                {/* Reactions/Comments can go here later */}
+              </div>
+            ))}
           </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function UploadCard({ onUploaded }) {
+  const { isAuthenticated } = useAuth();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+
+  if (!isAuthenticated) {
+    return (
+      <section className="card">
+        <div className="card-body">
+          <p>Login to upload your pet photos.</p>
         </div>
       </section>
+    );
+  }
 
-      <FeaturesRow />
-    </main>
+  async function submit(e) {
+    e.preventDefault();
+    setError("");
+    setPending(true);
+
+    const fd = new FormData(e.currentTarget);
+
+    try {
+      const r = await fetch("/api/pets_upload.php", {
+        method: "POST",
+        body: fd,
+        credentials: "include",
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || "Upload failed");
+      e.currentTarget.reset();
+      await onUploaded?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <section className="card">
+      <div className="card-header">
+        <h3>📤 Upload a Pet</h3>
+      </div>
+      <div className="card-body">
+        <form className="upload-form" onSubmit={submit}>
+          <input name="name" placeholder="Name" required />
+          <input name="species" placeholder="Species (Dog, Cat, …)" required />
+          <input name="description" placeholder="Short description (optional)" />
+          <input name="image" type="file" accept="image/*" required />
+          <button className="btn btn-primary" disabled={pending}>
+            {pending ? "Uploading…" : "Upload"}
+          </button>
+        </form>
+        {error ? <p className="error">{error}</p> : null}
+      </div>
+    </section>
   );
 }
