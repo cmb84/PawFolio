@@ -1,103 +1,122 @@
+import { useMemo } from "react";
 import { useAuth } from "../auth/AuthProvider";
 
 export default function Home() {
   const { user } = useAuth();
 
-  // ✅ Remote Unsplash placeholders (no setup required)
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 18) return "Good afternoon";
+    return "Good evening";
+  }, []);
+
+  // Local photos from public/img (served from site root)
   const samplePets = [
     {
-      name: "Bella",
-      species: "Dog",
-      description: "Golden Retriever who loves the beach 🐾",
-      image:
-        <img src="/images/Golden.png"alt="Golden Retriever" className="pet-img" />
-
+      name: "Aki",
+      species: "Hamster",
+      image: "/img/aki.jpg",
+      username: "carlos",
+      description: "Master burrower. Accepts rent in carrot coins only. 🥕💰",
     },
     {
-      name: "Milo",
+      name: "Momo (Silly Cam)",
       species: "Cat",
-      description: "Enjoys long naps and head scratches 😺",
-      image:
-        "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?q=80&w=800&auto=format&fit=crop",
+      image: "/img/momosilly.jpg",
+      username: "alex",
+      description: "Accidentally opened selfie mode. Regrets nothing. 📸😼",
     },
     {
-      name: "Luna",
-      species: "Bunny",
-      description: "Fluffy and full of energy 🌙",
-      image:
-        "https://images.unsplash.com/photo-1543852786-1cf6624b9987?q=80&w=800&auto=format&fit=crop",
+      name: "Momo (Model Pose)",
+      species: "Cat",
+      image: "/img/momo.jpg",
+      username: "riley",
+      description: "Sits like a gentleman. Demands treats like a dragon. 🍗🐉",
     },
     {
-      name: "Sunny",
-      species: "Bird",
-      description: "Always singing cheerful tunes ☀️",
-      image:
-        "https://images.unsplash.com/photo-1525253086316-d0c936c814f8?q=80&w=800&auto=format&fit=crop",
+      name: "Charlie",
+      species: "Sun Conure",
+      image: "/img/charliebird.jpg",
+      username: "cmb84",
+      description: "Volume set to 11, colors set to WOW. 🔊🟠🟢",
+    },
+    {
+      name: "Cosho",
+      species: "Cat",
+      image: "/img/cosho.jpg",
+      username: "ari",
+      description: "Certified floral inspector. Sniffs, approves, supervises. 🌻👃",
+    },
+    {
+      name: "Minerva",
+      species: "Cat",
+      image: "/img/minerva.jpg",
+      username: "sam",
+      description: "Void with whiskers. Appears when snacks are mentioned. 🌑✨",
+    },
+    {
+      name: "Golden",
+      species: "Dog",
+      image: "/img/golden.jpg",
+      username: "team",
+      description: "Beach zoomies champion. Will trade ball for compliments. 🏖️🎾",
     },
   ];
 
+  // Pet of the Day = first entry for now
+  const potd = samplePets[0];
+
   return (
     <div className="page">
-      {/* 🐾 Hero Section */}
+      {/* Hero banner */}
       <header className="hero pawfolio-hero">
         <div className="container">
           <h1 className="hero-title">
-            Welcome{user?.username ? `, ${user.username}` : ""} to{" "}
+            {greeting}{user?.username ? `, ${user.username}` : ""}! Welcome to{" "}
             <span className="accent">PawFolio</span>
           </h1>
           <p className="hero-sub">
-            Discover adorable pets from all over the world, share your own soon,
-            and explore our growing gallery of furry (and feathery) friends!
+            Share adorable pets, discover new friends, and react with emojis. 🐾
           </p>
+          <div style={{ marginTop: 16 }}>
+            <a href="/about" className="btn btn-cta">Learn More</a>
+          </div>
         </div>
       </header>
 
-      {/* 🐕 Pet of the Day */}
       <main className="container">
-        <section className="card">
-          <div className="card-header">
-            <h3>🐾 Pet of the Day</h3>
-          </div>
+        {/* Pet of the Day */}
+        <section className="card" style={{ background: "var(--bg-0)", borderRadius: 14, padding: 16, marginTop: 22 }}>
+          <div className="card-header"><h3>🐶 Pet of the Day</h3></div>
           <div className="card-body">
             <div className="potd">
-              <img
-                className="potd-img"
-                src={samplePets[0].image}
-                alt={samplePets[0].name}
-              />
+              <img className="potd-img" src={potd.image} alt={potd.name} />
               <div className="potd-meta">
                 <h4>
-                  {samplePets[0].name}{" "}
-                  <span className="badge">{samplePets[0].species}</span>
+                  {potd.name} <span className="badge">{potd.species}</span>
                 </h4>
-                <p>{samplePets[0].description}</p>
+                <p>{potd.description}</p>
+                <p className="byline">by @{potd.username}</p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 🐈 Pet Gallery */}
-        <section>
-          <h3 className="section-title">Pet Gallery</h3>
+        {/* Gallery */}
+        <section style={{ marginTop: 24 }}>
+          <h3 className="section-title">Gallery</h3>
           <div className="grid">
-            {samplePets.map((pet, i) => (
+            {samplePets.map((p, i) => (
               <div key={i} className="pet-card">
-                <img
-                  src={pet.image}
-                  alt={pet.name}
-                  className="pet-img"
-                  onError={(e) => {
-                    e.currentTarget.src =
-                      "https://images.unsplash.com/photo-1507149833265-60c372daea22?q=80&w=800&auto=format&fit=crop";
-                  }}
-                />
+                <img src={p.image} alt={p.name} className="pet-img" />
                 <div className="pet-meta">
-                  <h4>{pet.name}</h4>
+                  <h4>{p.name}</h4>
                   <div className="row">
-                    <span className="badge">{pet.species}</span>
-                    <span className="byline">shared by guest</span>
+                    <span className="badge">{p.species}</span>
+                    <span className="byline">by @{p.username}</span>
                   </div>
-                  <p>{pet.description}</p>
+                  <p>{p.description}</p>
                 </div>
               </div>
             ))}
