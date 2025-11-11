@@ -10,7 +10,8 @@ export default function Home() {
       species: "Dog",
       description: "Golden Retriever who loves the beach 🐾",
       image:
-        "https://images.unsplash.com/photo-1507149833265-60c372daea22?q=80&w=800&auto=format&fit=crop",
+        <img src="/images/Golden.png"alt="Golden Retriever" className="pet-img" />
+
     },
     {
       name: "Milo",
