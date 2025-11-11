@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -17,87 +17,50 @@ export default function Dashboard() {
     return "Good evening";
   }, []);
 
+  // NEW: Load pets from API (falls back to sample data if unavailable)
+  const [pets, setPets] = useState([]);
+  const [loadingPets, setLoadingPets] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/pets_list.php", { credentials: "include" });
+        const j = await r.json().catch(() => ({}));
+        if (!cancelled && j?.ok && Array.isArray(j.pets)) {
+          // Map API to our card format while keeping original field names used below
+          const mapped = j.pets.map((p) => ({
+            t: p.name,                  // title -> pet name
+            y: p.species,               // "year" slot -> species text
+            img: p.imageUrl,            // image url
+            imdb: p.imageUrl,           // link to open the image in a new tab
+            by: p.username || "user",   // optional owner
+          }));
+          setPets(mapped);
+        } else if (!cancelled) {
+          setPets(samplePets);
+        }
+      } catch {
+        if (!cancelled) setPets(samplePets);
+      } finally {
+        if (!cancelled) setLoadingPets(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   if (loading) return null;
 
-  const trending = [
-    {
-      t: "Blade Runner 2049",
-      y: 2017,
-      img: "https://image.tmdb.org/t/p/w500/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg",
-      imdb: "https://www.imdb.com/title/tt1856101/",
-    },
-    {
-      t: "The Dark Knight",
-      y: 2008,
-      img: "https://image.tmdb.org/t/p/w500/1hRoyzDtpgMU7Dz4JF22RANzQO7.jpg",
-      imdb: "https://www.imdb.com/title/tt0468569/",
-    },
-    {
-      t: "The Godfather",
-      y: 1972,
-      img: "https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg",
-      imdb: "https://www.imdb.com/title/tt0068646/",
-    },
-    {
-      t: "Joker",
-      y: 2019,
-      img: "https://image.tmdb.org/t/p/w500/udDclJoHjfjb8Ekgsd4FDteOkCU.jpg",
-      imdb: "https://www.imdb.com/title/tt7286456/",
-    },
-    {
-      t: "Spirited Away",
-      y: 2001,
-      img: "https://image.tmdb.org/t/p/w500/oRvMaJOmapypFUcQqpgHMZA6qL9.jpg",
-      imdb: "https://www.imdb.com/title/tt0245429/",
-    },
-    {
-      t: "Frozen",
-      y: 2013,
-      img: "https://image.tmdb.org/t/p/w500/kgwjIb2JDHRhNk13lmSxiClFjVk.jpg",
-      imdb: "https://www.imdb.com/title/tt2294629/",
-    },
-  ];
-
-  const topRated = [
-    {
-      t: "Schindler’s List",
-      y: 1993,
-      img: "https://image.tmdb.org/t/p/w500/sF1U4EUQS8YHUYjNl3pMGNIQyr0.jpg",
-      imdb: "https://www.imdb.com/title/tt0108052/",
-    },
-    {
-      t: "The Lord of the Rings: The Return of the King",
-      y: 2003,
-      img: "https://image.tmdb.org/t/p/w500/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg",
-      imdb: "https://www.imdb.com/title/tt0167260/",
-    },
-    {
-      t: "Terminator 2: Judgment Day",
-      y: 1991,
-      img: "https://image.tmdb.org/t/p/w500/weVXMD5QBGeQil4HEATZqAkXeEc.jpg",
-      imdb: "https://www.imdb.com/title/tt0103064/",
-    },
-    {
-      t: "Fight Club",
-      y: 1999,
-      img: "https://image.tmdb.org/t/p/w500/bptfVGEQuv6vDTIMVCHjJ9Dz8PX.jpg",
-      imdb: "https://www.imdb.com/title/tt0137523/",
-    },
-    {
-      t: "Interstellar",
-      y: 2014,
-      img: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
-      imdb: "https://www.imdb.com/title/tt0816692/",
-    },
-  ];
-
+  // Keep original UI chips, but make them species “filters” (non-functional placeholder)
   const MoodChip = ({ label, emoji }) => (
-    <button className="mood-chip" type="button">
+    <button className="mood-chip" type="button" title={`Filter by ${label}`}>
       <span style={{ marginRight: 8 }}>{emoji}</span>
       {label}
     </button>
   );
 
+  // Keep the original "Poster" component & classes so CSS doesn't break.
+  // It now renders pets instead of movies.
   const Poster = ({ m }) => (
     <a href={m.imdb} target="_blank" rel="noopener noreferrer" className="poster-card">
       <img src={m.img} alt={m.t} className="poster-img" loading="lazy" />
@@ -107,6 +70,10 @@ export default function Dashboard() {
       </div>
     </a>
   );
+
+  // Derive sections (keeping your "trending" and "topRated" section structure/names)
+  const trending = pets.slice(0, 6);
+  const topRated = pets.slice(6, 11);
 
   return (
     <main className="page dashboard">
@@ -118,38 +85,112 @@ export default function Dashboard() {
               {user?.username ? `, ${user.username}` : ""}.
             </h1>
             <h2 className="hero-sub">
-              What’s your <span className="accent">mood</span> today?
+              Share & discover adorable pets on <span className="accent">PawFolio</span>.
             </h2>
 
             <div className="mood-bar">
-              <MoodChip emoji="😊" label="Happy" />
-              <MoodChip emoji="😔" label="Sad" />
-              <MoodChip emoji="💘" label="Romantic" />
-              <MoodChip emoji="😎" label="Chill" />
-              <MoodChip emoji="🧭" label="Adventurous" />
-              <button className="btn-cta">Continue →</button>
+              <MoodChip emoji="🐶" label="Dogs" />
+              <MoodChip emoji="🐱" label="Cats" />
+              <MoodChip emoji="🐰" label="Rabbits" />
+              <MoodChip emoji="🐦" label="Birds" />
+              <MoodChip emoji="🦎" label="Reptiles" />
+              <button className="btn-cta">Upload a Pet →</button>
             </div>
           </div>
         </div>
       </section>
 
       <section className="movie-section">
-        <h3 className="feature-title">Trending Now</h3>
-        <div className="poster-grid">
-          {trending.map((m) => (
-            <Poster key={m.imdb} m={m} />
-          ))}
-        </div>
+        <h3 className="feature-title">Recently Added</h3>
+        {loadingPets ? (
+          <div style={{ padding: "1rem" }}>Loading pets…</div>
+        ) : pets.length === 0 ? (
+          <div style={{ padding: "1rem" }}>No pets yet — be the first to upload!</div>
+        ) : (
+          <div className="poster-grid">
+            {trending.map((m, i) => (
+              <Poster key={(m.img || m.t) + i} m={m} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="movie-section">
-        <h3 className="feature-title">Top Rated Across Platforms</h3>
-        <div className="poster-grid">
-          {topRated.map((m) => (
-            <Poster key={m.imdb} m={m} />
-          ))}
-        </div>
+        <h3 className="feature-title">Top Loved</h3>
+        {loadingPets ? (
+          <div style={{ padding: "1rem" }}>Loading pets…</div>
+        ) : (
+          <div className="poster-grid">
+            {topRated.map((m, i) => (
+              <Poster key={(m.img || m.t) + i} m={m} />
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );
 }
+
+/** Fallback demo content (used only if API isn't ready) */
+const samplePets = [
+  {
+    t: "Luna",
+    y: "Cat",
+    img: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?q=80&w=800&auto=format&fit=crop",
+    imdb: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    t: "Milo",
+    y: "Dog",
+    img: "https://images.unsplash.com/photo-1507149833265-60c372daea22?q=80&w=800&auto=format&fit=crop",
+    imdb: "https://images.unsplash.com/photo-1507149833265-60c372daea22?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    t: "Willow",
+    y: "Rabbit",
+    img: "https://images.unsplash.com/photo-1518792399576-eaf0a5b2d395?q=80&w=800&auto=format&fit=crop",
+    imdb: "https://images.unsplash.com/photo-1518792399576-eaf0a5b2d395?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    t: "Rio",
+    y: "Bird",
+    img: "https://images.unsplash.com/photo-1518020961727-3d0e1a6d27f3?q=80&w=800&auto=format&fit=crop",
+    imdb: "https://images.unsplash.com/photo-1518020961727-3d0e1a6d27f3?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    t: "Cleo",
+    y: "Reptile",
+    img: "https://images.unsplash.com/photo-1615222288255-d8ab271aac3f?q=80&w=800&auto=format&fit=crop",
+    imdb: "https://images.unsplash.com/photo-1615222288255-d8ab271aac3f?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    t: "Nala",
+    y: "Cat",
+    img: "https://images.unsplash.com/photo-1511044568932-338cba0ad803?q=80&w=800&auto=format&fit=crop",
+    imdb: "https://images.unsplash.com/photo-1511044568932-338cba0ad803?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    t: "Buddy",
+    y: "Dog",
+    img: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=800&auto=format&fit=crop",
+    imdb: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    t: "Poppy",
+    y: "Rabbit",
+    img: "https://images.unsplash.com/photo-1494253109108-2e30c049369b?q=80&w=800&auto=format&fit=crop",
+    imdb: "https://images.unsplash.com/photo-1494253109108-2e30c049369b?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    t: "Skye",
+    y: "Bird",
+    img: "https://images.unsplash.com/photo-1501706362039-c06b2d715385?q=80&w=800&auto=format&fit=crop",
+    imdb: "https://images.unsplash.com/photo-1501706362039-c06b2d715385?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    t: "Spike",
+    y: "Reptile",
+    img: "https://images.unsplash.com/photo-1570716899235-5c4f7bcac28e?q=80&w=800&auto=format&fit=crop",
+    imdb: "https://images.unsplash.com/photo-1570716899235-5c4f7bcac28e?q=80&w=1600&auto=format&fit=crop",
+  },
+];

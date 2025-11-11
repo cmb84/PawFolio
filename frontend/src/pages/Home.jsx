@@ -1,70 +1,124 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useAuth } from "../auth/AuthProvider";
 
 export default function Home() {
-  const [loading, setLoading] = useState(true);
-  const [potd, setPotd] = useState(null);
-  const [pets, setPets] = useState([]);
   const { user } = useAuth();
 
-  async function fetchPotd() {
-    const r = await fetch("/api/pet_of_the_day.php", { credentials: "include" });
-    const j = await r.json();
-    if (j.ok) setPotd(j.pet || null);
-  }
-
-  async function fetchPets() {
-    const r = await fetch("/api/pets_list.php", { credentials: "include" });
-    const j = await r.json();
-    if (j.ok) setPets(j.pets || []);
-  }
-
-  useEffect(() => {
-    (async () => {
-      await Promise.all([fetchPotd(), fetchPets()]);
-      setLoading(false);
-    })();
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 18) return "Good afternoon";
+    return "Good evening";
   }, []);
 
-  if (loading) return <div style={{ textAlign: "center", padding: "2rem" }}>Loading…</div>;
+  // Static sample content (no API)
+  const petOfTheDay = {
+    name: "Luna",
+    species: "Cat",
+    description: "Sunbeam nap specialist and laser-dot hunter.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?q=80&w=1200&auto=format&fit=crop",
+  };
+
+  const samplePets = [
+    {
+      id: 1,
+      name: "Milo",
+      species: "Dog",
+      username: "milo_owner",
+      description: "Ball enthusiast. Will sit for treats.",
+      imageUrl:
+        "https://images.unsplash.com/photo-1507149833265-60c372daea22?q=80&w=800&auto=format&fit=crop",
+    },
+    {
+      id: 2,
+      name: "Willow",
+      species: "Rabbit",
+      username: "bunclub",
+      description: "Expert in leafy greens.",
+      imageUrl:
+        "https://images.unsplash.com/photo-1518792399576-eaf0a5b2d395?q=80&w=800&auto=format&fit=crop",
+    },
+    {
+      id: 3,
+      name: "Rio",
+      species: "Bird",
+      username: "feather_fam",
+      description: "Morning singer. Loves sunflower seeds.",
+      imageUrl:
+        "https://images.unsplash.com/photo-1518020961727-3d0e1a6d27f3?q=80&w=800&auto=format&fit=crop",
+    },
+    {
+      id: 4,
+      name: "Cleo",
+      species: "Reptile",
+      username: "scaled_buddy",
+      description: "Sun lamp enjoyer.",
+      imageUrl:
+        "https://images.unsplash.com/photo-1615222288255-d8ab271aac3f?q=80&w=800&auto=format&fit=crop",
+    },
+  ];
 
   return (
     <div className="page">
       <header className="hero">
         <div className="container">
           <h1 className="hero-title">
-            Welcome{user?.username ? `, ${user.username}` : ""} to <span className="accent">PawCloud</span>
+            {greeting}
+            {user?.username ? `, ${user.username}` : ""}! Welcome to{" "}
+            <span className="accent">PawFolio</span>
           </h1>
-          <p className="hero-sub">Browse adorable pets, upload your own, and react with emojis!</p>
+          <p className="hero-sub">
+            Browse adorable pets, share yours soon, and enjoy a calm, cozy gallery.
+          </p>
         </div>
       </header>
 
       <main className="container">
+        {/* Pet of the Day (static for now) */}
         <section className="card">
           <div className="card-header">
-            <h3>🐶 Pet of the Day</h3>
+            <h3> Pet of the Day</h3>
           </div>
           <div className="card-body">
-            {potd ? (
+            {petOfTheDay ? (
               <div className="potd">
-                <img className="potd-img" src={potd.imageUrl} alt={potd.name} />
+                <img
+                  className="potd-img"
+                  src={petOfTheDay.imageUrl}
+                  alt={petOfTheDay.name}
+                />
                 <div className="potd-meta">
-                  <h4>{potd.name} <span className="badge">{potd.species}</span></h4>
-                  <p>{potd.description || "No description yet."}</p>
+                  <h4>
+                    {petOfTheDay.name}{" "}
+                    <span className="badge">{petOfTheDay.species}</span>
+                  </h4>
+                  <p>{petOfTheDay.description || "No description yet."}</p>
                 </div>
               </div>
             ) : (
-              <p>No pets yet—be the first to upload!</p>
+              <p>No pets yet—come back soon!</p>
             )}
           </div>
         </section>
 
-        <UploadCard onUploaded={async () => { await fetchPotd(); await fetchPets(); }} />
+        {/* Upload placeholder (no API yet) */}
+        <section className="card">
+          <div className="card-header">
+            <h3>📤 Upload a Pet (coming soon)</h3>
+          </div>
+          <div className="card-body">
+            <p style={{ margin: 0 }}>
+              We’re polishing the uploader. For now, enjoy the gallery below. 
+            </p>
+          </div>
+        </section>
 
+        {/* Static Gallery */}
         <section>
           <h3 className="section-title">Gallery</h3>
           <div className="grid">
-            {pets.map((p) => (
+            {samplePets.map((p) => (
               <div key={p.id} className="pet-card">
                 <img src={p.imageUrl} alt={p.name} />
                 <div className="pet-meta">
@@ -75,72 +129,11 @@ export default function Home() {
                   </div>
                   {p.description ? <p>{p.description}</p> : null}
                 </div>
-                {/* Reactions/Comments can go here later */}
               </div>
             ))}
           </div>
         </section>
       </main>
     </div>
-  );
-}
-
-function UploadCard({ onUploaded }) {
-  const { isAuthenticated } = useAuth();
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
-
-  if (!isAuthenticated) {
-    return (
-      <section className="card">
-        <div className="card-body">
-          <p>Login to upload your pet photos.</p>
-        </div>
-      </section>
-    );
-  }
-
-  async function submit(e) {
-    e.preventDefault();
-    setError("");
-    setPending(true);
-
-    const fd = new FormData(e.currentTarget);
-
-    try {
-      const r = await fetch("/api/pets_upload.php", {
-        method: "POST",
-        body: fd,
-        credentials: "include",
-      });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error || "Upload failed");
-      e.currentTarget.reset();
-      await onUploaded?.();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setPending(false);
-    }
-  }
-
-  return (
-    <section className="card">
-      <div className="card-header">
-        <h3>📤 Upload a Pet</h3>
-      </div>
-      <div className="card-body">
-        <form className="upload-form" onSubmit={submit}>
-          <input name="name" placeholder="Name" required />
-          <input name="species" placeholder="Species (Dog, Cat, …)" required />
-          <input name="description" placeholder="Short description (optional)" />
-          <input name="image" type="file" accept="image/*" required />
-          <button className="btn btn-primary" disabled={pending}>
-            {pending ? "Uploading…" : "Upload"}
-          </button>
-        </form>
-        {error ? <p className="error">{error}</p> : null}
-      </div>
-    </section>
   );
 }

@@ -12,95 +12,59 @@ export default function About() {
     }
   }, [loading, user, nav]);
 
-  const team = [
-    {
-      name: "Peter Redfern",
-      role: "Back End 1",
-      email: "par36@njit.edu",
-      img: "/team/peter-redfern.jpg",
-    },
-    {
-      name: "Tom Kolawole",
-      role: "Back End 2",
-      email: "ook2@njit.edu",
-      img: "/team/tom-kolawole.jpg",
-    },
-    {
-      name: "Justin Chung",
-      role: "Databases",
-      email: "jjc88@njit.edu",
-      img: "/team/justin-chung.jpg",
-    },
-    {
-      name: "Min Namgung",
-      role: "RabbitMQ",
-      email: "mn548@njit.edu",
-      img: "/team/min-namgung.jpg",
-    },
-    {
-      name: "Riley MacFarlane",
-      role: "Front End",
-      email: "rbm@njit.edu",
-      img: "/team/riley-macfarlane.jpg",
-    },
-  ];
-
   return (
     <main className="page content" role="main">
       <section className="about-wrap1">
         <h1 className="about-h1">
-          About <span className="accent">Moodvies</span>
+          About <span className="accent">PawFolio</span>
         </h1>
         <p className="about-lead">
-          Moodvies is a movie discovery app that recommends films based on how you feel.
-          Start with a mood—not just a genre—and we’ll find titles that match that
-          emotional tone. See where each movie is streaming, read summaries, and save them
-          to watch later or share with friends.
+          PawFolio is a cloud-hosted web gallery where pet lovers can upload, share,
+          and browse adorable photos of their furry (and not-so-furry) friends. Built
+          with Amazon Web Services (AWS), PawFolio demonstrates how cloud
+          technologies—like EC2, S3, and RDS—can power a full-stack application that’s
+          fun, functional, and scalable.
         </p>
       </section>
 
       <section className="about-wrap2">
-        <h2 className="about-h2">What we built</h2>
+        <h2 className="about-h2">What We Built</h2>
         <ul className="about-list">
           <li>
-            <strong className="accent">Mood-based discovery:</strong> recommendations driven by how you feel.
+            <strong className="accent">Pet Gallery:</strong> A visually engaging
+            gallery showcasing community-uploaded pet photos with names and
+            descriptions.
           </li>
           <li>
-            <strong className="accent">Movie info:</strong> ratings, descriptions, and streaming availability in
-            one place.
+            <strong className="accent">User Accounts:</strong> Secure registration and
+            login system that allows each user to manage their personal uploads.
           </li>
           <li>
-            <strong className="accent">Lists & sharing:</strong> save favorites, build watchlists, and send them
-            to friends.
+            <strong className="accent">Cloud Storage:</strong> All images are hosted
+            in AWS S3 for scalability and performance, while pet data is managed
+            through AWS RDS.
           </li>
           <li>
-            <strong className="accent">Social voting:</strong> let friends vote on movies to quickly choose what
-            to watch next.
+            <strong className="accent">Simple Upload System:</strong> Upload new pets
+            instantly—name them, describe them, and share them with the community.
+          </li>
+          <li>
+            <strong className="accent">Monitoring and Security:</strong> Uses IAM
+            roles, CloudWatch, and secure access policies to ensure data safety and
+            cost efficiency.
           </li>
         </ul>
       </section>
 
       <section className="about-wrap3">
-        <h2 className="about-h2 accent">Meet the Team</h2>
-        <div className="team-grid">
-          {team.map((m) => (
-            <article className="feature team-article" key={m.name}>
-              <div className="team-avatar">
-                <img
-                  src={m.img}
-                  alt={`${m.name} headshot`}
-                  className="team-img-el"
-                  loading="lazy"
-                />
-              </div>
-              <div className="team-info">
-                <h3 className="team-name accent">{m.name}</h3>
-                <p className="team-role">{m.role}</p>
-                <p className="team-email">{m.email}</p>
-              </div>
-            </article>
-          ))}
-        </div>
+        <h2 className="about-h2 accent">Our Mission</h2>
+        <p>
+          The goal of PawFolio is to combine technical learning with something joyful:
+          our pets. It’s more than a demonstration of cloud computing—it’s a project
+          that celebrates community, creativity, and technology. By developing PawFolio,
+          we learned how to deploy, secure, and scale real web applications on AWS
+          while creating a fun experience for users everywhere.
+        </p>
       </section>
     </main>
   );
