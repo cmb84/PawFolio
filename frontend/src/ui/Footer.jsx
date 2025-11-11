@@ -1,34 +1,54 @@
-import { Link } from "react-router-dom";
-
 export default function Footer() {
-  const year = new Date().getFullYear();
   return (
     <footer className="site-footer">
       <div className="footer-bar">
-        <div className="footer-left">
-          © {year} Moodvies • “Give us your mood, we give you the movies.”
+        {/* === Left side: brand logo and name === */}
+        <div className="logo-lockup">
+          <img
+            src="/img/logo.png"
+            alt="PawFolio logo"
+            height="32"
+            width="32"
+          />
+          <span className="wordmark">PawFolio</span>
         </div>
 
+        {/* === Center text === */}
+        <div className="footer-center">
+          <p>
+            © {new Date().getFullYear()} PawFolio — Made with ❤️ by Team
+            PawFolio
+          </p>
+        </div>
+
+        {/* === Right side: contact + socials === */}
         <div className="footer-right">
           <a
+            href="mailto:team@pawfolio.com"
             className="footer-contact"
-            href="https://github.com/IT490-101FA25/Capstone-Group-07/issues"
-            target="_blank"
-            rel="noopener noreferrer"
+            title="Email us"
           >
-            Contact
+            📧 team@pawfolio.com
           </a>
 
           <a
-            className="social"
-            href="https://github.com/IT490-101FA25/Capstone-Group-07"
+            href="https://github.com"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="GitHub repository"
+            className="social"
             title="GitHub"
           >
-            <span className="footer-icon" aria-hidden="true"></span>
-            <span className="sr-only">GitHub</span>
+            <span className="footer-icon"></span>
+          </a>
+
+          <a
+            href="https://instagram.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="social"
+            title="Instagram"
+          >
+            🐾
           </a>
         </div>
       </div>

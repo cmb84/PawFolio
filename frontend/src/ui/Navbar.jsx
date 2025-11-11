@@ -1,32 +1,57 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 
 export default function Navbar() {
-  const { isAuthenticated, logout } = useAuth();
-  const navigate = useNavigate();
-
-  async function handleLogout() {
-    await logout();
-    navigate("/login");
-  }
+  const { user, logout } = useAuth();
 
   return (
-    <nav className="navbar">
-      <div className="nav-inner">
-        <Link to="/" className="brand">🐾 PawCloud</Link>
+    <nav className="nav-wrap">
+      <div className="nav">
+        {/* === Brand === */}
+        <Link to="/" className="brand">
+          <img
+            src="/img/logo.png"
+            alt="PawFolio logo"
+            className="brand-logo"
+          />
+          <span className="brand-wordmark">PawFolio</span>
+        </Link>
+
+        {/* === Navigation Links === */}
         <div className="nav-links">
-          <NavLink to="/" end>Home</NavLink>
-          <NavLink to="/dashboard">My Pets</NavLink>
-          <NavLink to="/about">About</NavLink>
+          <NavLink to="/" className="nav-link">
+            Home
+          </NavLink>
+          <NavLink to="/about" className="nav-link">
+            About
+          </NavLink>
+          {user && (
+            <NavLink to="/dashboard" className="nav-link">
+              Dashboard
+            </NavLink>
+          )}
         </div>
-        <div className="nav-auth">
-          {isAuthenticated ? (
-            <button className="btn" onClick={handleLogout}>Logout</button>
+
+        {/* === Right Side Actions === */}
+        <div className="nav-right">
+          {user ? (
+            <details className="nav-user">
+              <summary className="nav-user-btn">
+                <span className="avatar-sm">
+                  {user.username ? user.username[0].toUpperCase() : "U"}
+                </span>
+                <span className="nav-user-name">{user.username}</span>
+              </summary>
+              <div className="nav-menu">
+                <button className="nav-menu-item" onClick={logout}>
+                  Logout
+                </button>
+              </div>
+            </details>
           ) : (
-            <>
-              <NavLink className="btn" to="/login">Login</NavLink>
-              <NavLink className="btn btn-primary" to="/signup">Sign up</NavLink>
-            </>
+            <Link to="/login" className="btn-signin btn">
+              Sign In
+            </Link>
           )}
         </div>
       </div>
