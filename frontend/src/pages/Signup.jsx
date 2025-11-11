@@ -1,24 +1,28 @@
 import { Link, useNavigate } from "react-router-dom";
-import Footer from "../ui/Footer";
 import { useAuth } from "../auth/AuthProvider";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Signup() {
   const nav = useNavigate();
   const { registerOk, user } = useAuth();
 
   const [username, setUsername] = useState("");
-  const [email, setEmail]     = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm]   = useState("");
-  const [msg, setMsg] = useState("");
+  const [showPw, setShowPw]     = useState(false);
+  const [showCp, setShowCp]     = useState(false);
+  const [msg, setMsg]           = useState("");
+  const [pending, setPending]   = useState(false);
 
   useEffect(() => {
     if (user) nav("/dashboard", { replace: true });
   }, [user, nav]);
 
-  const submit = async () => {
+  const submit = async (e) => {
+    e?.preventDefault();
     setMsg("");
+
     if (!username || !email || !password || !confirm) {
       setMsg("All fields are required.");
       return;
@@ -27,29 +31,28 @@ export default function Signup() {
       setMsg("Password must be at least 8 characters.");
       return;
     }
-    if (!/[A-Z]/.test(password) || 
-        !/[a-z]/.test(password) || 
-        !/[0-9]/.test(password)) {
-      setMsg('Password must include upper, lower, and numeric characters');
-      return
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      setMsg("Password must include upper, lower, and numeric characters.");
+      return;
     }
     if (password !== confirm) {
       setMsg("Passwords do not match.");
       return;
     }
+
     try {
+      setPending(true);
       await registerOk(email, password, username);
       nav("/dashboard");
     } catch (err) {
       setMsg(err?.message || "Registration failed.");
+    } finally {
+      setPending(false);
     }
   };
 
   const onKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      submit();
-    }
+    if (e.key === "Enter") submit(e);
   };
 
   return (
@@ -58,70 +61,117 @@ export default function Signup() {
         Back
       </Link>
 
-      <div className="login-card" role="form" aria-label="Create account">
+      <div className="login-card" role="form" aria-label="Create PawFolio account">
         <div className="login-logo-wrap">
-          <img src="/logo.png" alt="Moodvies" className="login-logo" />
+          {/* served from frontend/public/img/logo.png */}
+          <img src="/img/logo.png" alt="PawFolio" className="login-logo" />
         </div>
 
         <h1 className="login-title">Create account</h1>
 
-        <label className="login-input-wrap">
-          <span className="login-input-label">Username</span>
-          <input
-            type="text"
-            placeholder="Username"
-            autoComplete="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            onKeyDown={onKeyDown}
-            required
-          />
-        </label>
+        <form onSubmit={submit} style={{ width: "100%" }}>
+          <label className="login-input-wrap">
+            <span className="login-input-label">Username</span>
+            <input
+              type="text"
+              placeholder="Username"
+              autoComplete="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={onKeyDown}
+              required
+            />
+          </label>
 
-        <label className="login-input-wrap">
-          <span className="login-input-label">Email</span>
-          <input
-            type="email"
-            placeholder="Email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={onKeyDown}
-            required
-          />
-        </label>
+          <label className="login-input-wrap">
+            <span className="login-input-label">Email</span>
+            <input
+              type="email"
+              placeholder="Email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={onKeyDown}
+              required
+            />
+          </label>
 
-        <label className="login-input-wrap">
-          <span className="login-input-label">Password</span>
-          <input
-            type="password"
-            placeholder="Password"
-            autoComplete="new-password"
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={onKeyDown}
-            required
-          />
-        </label>
+          <label className="login-input-wrap">
+            <span className="login-input-label">Password</span>
+            <div style={{ position: "relative" }}>
+              <input
+                type={showPw ? "text" : "password"}
+                placeholder="Password"
+                autoComplete="new-password"
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={onKeyDown}
+                required
+                style={{ paddingRight: 96 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                className="btn"
+                aria-pressed={showPw}
+                style={{
+                  position: "absolute",
+                  right: 6,
+                  top: 6,
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  background: "rgba(255,255,255,0.08)",
+                  color: "var(--text)",
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                {showPw ? "Hide" : "Show"}
+              </button>
+            </div>
+          </label>
 
-        <label className="login-input-wrap">
-          <span className="login-input-label">Confirm password</span>
-          <input
-            type="password"
-            placeholder="Confirm password"
-            autoComplete="new-password"
-            minLength={8}
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            onKeyDown={onKeyDown}
-            required
-          />
-        </label>
+          <label className="login-input-wrap">
+            <span className="login-input-label">Confirm password</span>
+            <div style={{ position: "relative" }}>
+              <input
+                type={showCp ? "text" : "password"}
+                placeholder="Confirm password"
+                autoComplete="new-password"
+                minLength={8}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                onKeyDown={onKeyDown}
+                required
+                style={{ paddingRight: 96 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCp((v) => !v)}
+                className="btn"
+                aria-pressed={showCp}
+                style={{
+                  position: "absolute",
+                  right: 6,
+                  top: 6,
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  background: "rgba(255,255,255,0.08)",
+                  color: "var(--text)",
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                {showCp ? "Hide" : "Show"}
+              </button>
+            </div>
+          </label>
 
-        <button className="btn login-btn" type="button" onClick={submit}>
-          Create Account
-        </button>
+          <button className="btn login-btn" type="submit" disabled={pending}>
+            {pending ? "Creating…" : "Create Account"}
+          </button>
+        </form>
 
         {msg && (
           <div className="notice" role="alert" style={{ marginTop: "0.75rem" }}>
@@ -136,7 +186,6 @@ export default function Signup() {
           </Link>
         </p>
       </div>
-
     </main>
   );
 }
