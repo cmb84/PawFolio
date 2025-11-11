@@ -58,7 +58,7 @@ export default function Home() {
     {
       name: "Golden",
       species: "Dog",
-      image: "/img/golden.jpg",
+      image: "/img/Golden.jpg",
       username: "team",
       description: "Beach zoomies champion. Will trade ball for compliments. 🏖️🎾",
     },
