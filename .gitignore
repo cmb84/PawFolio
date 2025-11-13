@@ -7,3 +7,4 @@ frontend/.idea/
 .vscode/
 .log
 .env
+vendor/
