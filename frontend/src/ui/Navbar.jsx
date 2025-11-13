@@ -13,7 +13,6 @@ export default function Navbar() {
             alt="PawFolio logo"
             className="brand-logo"
           />
-          <span className="brand-wordmark">PawFolio</span>
         </Link>
 
         <div className="nav-links">

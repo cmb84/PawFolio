@@ -8,7 +8,6 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);
   const [msg, setMsg] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -49,7 +48,7 @@ export default function Login() {
   };
 
   return (
-    <main className="page login-page">
+    <main className="page auth-page">
       <Link to="/" className="login-back-btn" aria-label="Go back home">
         Back
       </Link>
@@ -84,7 +83,7 @@ export default function Login() {
             <span className="login-input-label">Password</span>
             <div style={{ position: "relative" }}>
               <input
-                type={showPw ? "text" : "password"}
+                type="password"
                 placeholder="Password"
                 autoComplete="current-password"
                 minLength={8}
@@ -95,25 +94,6 @@ export default function Login() {
                 aria-required="true"
                 style={{ paddingRight: 96 }}
               />
-              <button
-                type="button"
-                onClick={() => setShowPw((v) => !v)}
-                className="btn"
-                aria-pressed={showPw}
-                style={{
-                  position: "absolute",
-                  right: 6,
-                  top: 6,
-                  padding: "8px 10px",
-                  borderRadius: 10,
-                  background: "rgba(255,255,255,0.08)",
-                  color: "var(--text)",
-                  fontWeight: 700,
-                  cursor: "pointer"
-                }}
-              >
-                {showPw ? "Hide" : "Show"}
-              </button>
             </div>
           </label>
 

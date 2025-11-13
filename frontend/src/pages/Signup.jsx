@@ -10,8 +10,6 @@ export default function Signup() {
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm]   = useState("");
-  const [showPw, setShowPw]     = useState(false);
-  const [showCp, setShowCp]     = useState(false);
   const [msg, setMsg]           = useState("");
   const [pending, setPending]   = useState(false);
 
@@ -56,7 +54,8 @@ export default function Signup() {
   };
 
   return (
-    <main className="page login-page">
+    <main className="page auth-page">
+
       <Link to="/login" className="login-back-btn" aria-label="Back to sign in">
         Back
       </Link>
@@ -100,7 +99,7 @@ export default function Signup() {
             <span className="login-input-label">Password</span>
             <div style={{ position: "relative" }}>
               <input
-                type={showPw ? "text" : "password"}
+                type="password"
                 placeholder="Password"
                 autoComplete="new-password"
                 minLength={8}
@@ -110,25 +109,6 @@ export default function Signup() {
                 required
                 style={{ paddingRight: 96 }}
               />
-              <button
-                type="button"
-                onClick={() => setShowPw((v) => !v)}
-                className="btn"
-                aria-pressed={showPw}
-                style={{
-                  position: "absolute",
-                  right: 6,
-                  top: 6,
-                  padding: "8px 10px",
-                  borderRadius: 10,
-                  background: "rgba(255,255,255,0.08)",
-                  color: "var(--text)",
-                  fontWeight: 700,
-                  cursor: "pointer"
-                }}
-              >
-                {showPw ? "Hide" : "Show"}
-              </button>
             </div>
           </label>
 
@@ -136,7 +116,7 @@ export default function Signup() {
             <span className="login-input-label">Confirm password</span>
             <div style={{ position: "relative" }}>
               <input
-                type={showCp ? "text" : "password"}
+                type="password"
                 placeholder="Confirm password"
                 autoComplete="new-password"
                 minLength={8}
@@ -146,25 +126,6 @@ export default function Signup() {
                 required
                 style={{ paddingRight: 96 }}
               />
-              <button
-                type="button"
-                onClick={() => setShowCp((v) => !v)}
-                className="btn"
-                aria-pressed={showCp}
-                style={{
-                  position: "absolute",
-                  right: 6,
-                  top: 6,
-                  padding: "8px 10px",
-                  borderRadius: 10,
-                  background: "rgba(255,255,255,0.08)",
-                  color: "var(--text)",
-                  fontWeight: 700,
-                  cursor: "pointer"
-                }}
-              >
-                {showCp ? "Hide" : "Show"}
-              </button>
             </div>
           </label>
 

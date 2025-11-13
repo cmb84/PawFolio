@@ -4,13 +4,6 @@ export default function Footer() {
       <div className="footer-bar">
         {/* === Left side: brand logo and name === */}
         <div className="logo-lockup">
-          <img
-            src="/img/logo.png"
-            alt="PawFolio logo"
-            height="32"
-            width="32"
-          />
-          <span className="wordmark">PawFolio</span>
         </div>
 
         {/* === Center text === */}
