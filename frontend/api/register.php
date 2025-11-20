@@ -3,116 +3,64 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
+require_method('POST');
 $body = read_json_body();
-$email = trim((string) ($body['email'] ?? ''));
-$password = (string) ($body['password'] ?? '');
-$username = trim((string) ($body['username'] ?? ''));
 
-if ($email === '' || $password === '' || $username === '') {
-    json_out(['ok' => false, 'error' => 'Username, email, and password are required'], 400);
+$username = trim((string) ($body['username'] ?? ''));
+$email    = trim((string) ($body['email'] ?? ''));
+$password = (string) ($body['password'] ?? '');
+$confirm  = (string) ($body['confirm'] ?? '');
+
+if ($username === '' || $email === '' || $password === '' || $confirm === '') {
+    json_out(['ok' => false, 'error' => 'All fields are required'], 400);
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     json_out(['ok' => false, 'error' => 'Invalid email address'], 400);
 }
 
+if ($password !== $confirm) {
+    json_out(['ok' => false, 'error' => 'Passwords do not match'], 400);
+}
+
 if (strlen($password) < 8) {
-    json_out(['ok' => false, 'error' => 'Password must be at least 8 characters long'], 400);
+    json_out(['ok' => false, 'error' => 'Password must be at least 8 characters'], 400);
 }
 
-$payload = [
-    'action' => 'register',
-    'params' => [
-        'username' => $username,
-        'email' => $email,
-        'password' => $password
-    ],
-    'ts' => time(),
-];
+try {
+    $pdo = getPDO();
 
-$response = null;
-$maxRetries = 3;
-$retryDelays = [5, 10, 15];
-
-for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
-    try {
-        [$connection, $channel] = get_rabbitmq_channel() ?? [null, null];
-        if (!$connection || !$channel) {
-            throw new RuntimeException('Failed to connect to RabbitMQ');
-        }
-
-        rabbitmq_publish(RMQ_QUEUE_F2B1, $payload);
-        error_log("[REGISTER] Attempt #{$attempt} sent 'register' payload to queue: " . RMQ_QUEUE_F2B1);
-
-        $response = null;
-        $callback = function ($rep) use (&$response) {
-            $response = json_decode($rep->body ?? '{}', true);
-        };
-
-        $channel->basic_consume(RMQ_QUEUE_B1F, '', false, true, false, false, $callback);
-
-        $start = microtime(true);
-        while (!$response && (microtime(true) - $start) < 10.0) {
-            $channel->wait(null, false, 9);
-        }
-
-        $channel->close();
-        $connection->close();
-
-        if ($response) break;
-
-        if ($attempt < $maxRetries) {
-            $delay = $retryDelays[$attempt - 1];
-            error_log("[REGISTER] No response. Retrying in {$delay}s...");
-            sleep($delay);
-        }
-
-    } catch (Throwable $e) {
-        error_log("[REGISTER ERROR][Attempt #{$attempt}] " . $e->getMessage());
-        if ($attempt < $maxRetries) {
-            $delay = $retryDelays[$attempt - 1];
-            error_log("[REGISTER] Retrying in {$delay}s...");
-            sleep($delay);
-            continue;
-        } else {
-            json_out(['ok' => false, 'error' => 'Message broker unavailable'], 500);
-        }
+    // Check for existing email
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
+    $stmt->execute([':email' => $email]);
+    if ($stmt->fetch()) {
+        json_out(['ok' => false, 'error' => 'An account with that email already exists'], 409);
     }
-}
 
-if (!$response) {
-    json_out(['ok' => false, 'error' => 'No response from backend after multiple attempts'], 504);
-}
+    $hash = password_hash($password, PASSWORD_DEFAULT);
 
-if (($response['status'] ?? '') !== 'success') {
+    $stmt = $pdo->prepare(
+        'INSERT INTO users (username, email, password) VALUES (:username, :email, :password)'
+    );
+    $stmt->execute([
+        ':username' => $username,
+        ':email'    => $email,
+        ':password' => $hash,
+    ]);
+
+    $userId = (int) $pdo->lastInsertId();
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = $userId;
+
     json_out([
-        'ok' => false,
-        'error' => $response['message'] ?? 'Registration failed'
-    ], 400);
+        'ok'   => true,
+        'user' => [
+            'id'       => $userId,
+            'username' => $username,
+            'email'    => $email,
+        ],
+    ]);
+} catch (Throwable $e) {
+    error_log('[REGISTER] ' . $e->getMessage());
+    json_out(['ok' => false, 'error' => 'Server error during registration'], 500);
 }
-
-$user = $response['user'] ?? [
-    'id' => $response['user_id'] ?? null,
-    'username' => $username,
-    'email' => $email,
-];
-if (empty($user['id'])) {
-    json_out(['ok' => false, 'error' => 'Malformed backend response'], 502);
-}
-
-$_SESSION['user'] = $user;
-
-$tokenPayload = base64_encode(json_encode([
-    'uid' => $user['id'],
-    'ts' => time(),
-    'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
-]));
-set_auth_cookie($tokenPayload);
-
-json_out([
-    'ok' => true,
-    'message' => 'Registration successful',
-    'user' => $user,
-    'token' => $tokenPayload
-]);
-?>

@@ -9,3 +9,8 @@ CREATE TABLE IF NOT EXISTS `Users` (
     UNIQUE (`email`),
     UNIQUE (`username`)
 );
+CREATE DATABASE pawfolio CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE USER 'pawfolio'@'localhost' IDENTIFIED BY 'changeme';
+GRANT ALL PRIVILEGES ON pawfolio.* TO 'pawfolio'@'localhost';
+FLUSH PRIVILEGES;

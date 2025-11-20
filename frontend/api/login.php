@@ -3,102 +3,42 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
+require_method('POST');
 $body = read_json_body();
-$email = trim((string) ($body['email'] ?? ''));
+
+$email    = trim((string) ($body['email'] ?? ''));
 $password = (string) ($body['password'] ?? '');
 
 if ($email === '' || $password === '') {
     json_out(['ok' => false, 'error' => 'Email and password are required'], 400);
 }
 
-$payload = [
-    'action' => 'login',
-    'params' => [
-        'email' => $email,
-        'password' => $password,
-    ],
-    'ts' => time(),
-];
+try {
+    $pdo = getPDO();
+    $stmt = $pdo->prepare('SELECT id, username, email, password FROM users WHERE email = :email LIMIT 1');
+    $stmt->execute([':email' => $email]);
+    $row = $stmt->fetch();
 
-$response = null;
-$maxRetries = 3;
-$retryDelays = [5, 10, 15];
-
-for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
-    try {
-        [$connection, $channel] = get_rabbitmq_channel() ?? [null, null];
-        if (!$connection || !$channel) {
-            throw new RuntimeException('Failed to connect to RabbitMQ');
-        }
-
-        rabbitmq_publish(RMQ_QUEUE_F2B1, $payload);
-        error_log("[LOGIN] Attempt #{$attempt} sent login payload to queue: " . RMQ_QUEUE_F2B1);
-
-        $response = null;
-        $callback = function ($rep) use (&$response) {
-            $response = json_decode($rep->body ?? '{}', true);
-        };
-
-        $channel->basic_consume(RMQ_QUEUE_B1F, '', false, true, false, false, $callback);
-
-        $start = microtime(true);
-        while (!$response && (microtime(true) - $start) < 10.0) {
-            $channel->wait(null, false, 9);
-        }
-
-        $channel->close();
-        $connection->close();
-
-        if ($response) break;
-
-        if ($attempt < $maxRetries) {
-            $delay = $retryDelays[$attempt - 1];
-            error_log("[LOGIN] No response. Retrying in {$delay}s...");
-            sleep($delay);
-        }
-
-    } catch (Throwable $e) {
-        error_log("[LOGIN ERROR][Attempt #{$attempt}] " . $e->getMessage());
-        if ($attempt < $maxRetries) {
-            $delay = $retryDelays[$attempt - 1];
-            error_log("[LOGIN] Retrying in {$delay}s...");
-            sleep($delay);
-            continue;
-        } else {
-            json_out(['ok' => false, 'error' => 'Message broker unavailable'], 500);
-        }
+    if (!$row) {
+        json_out(['ok' => false, 'error' => 'Invalid email or password'], 401);
     }
-}
 
-if (!$response) {
-    json_out(['ok' => false, 'error' => 'No response from backend after multiple attempts'], 504);
-}
+    if (!password_verify($password, $row['password'])) {
+        json_out(['ok' => false, 'error' => 'Invalid email or password'], 401);
+    }
 
-if (($response['status'] ?? '') !== 'success') {
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = (int) $row['id'];
+
     json_out([
-        'ok' => false,
-        'error' => $response['message'] ?? 'Invalid login credentials',
-    ], 401);
+        'ok'   => true,
+        'user' => [
+            'id'       => (int) $row['id'],
+            'username' => $row['username'],
+            'email'    => $row['email'],
+        ],
+    ]);
+} catch (Throwable $e) {
+    error_log('[LOGIN] ' . $e->getMessage());
+    json_out(['ok' => false, 'error' => 'Server error during login'], 500);
 }
-
-$user = $response['user'] ?? null;
-if (!$user || !isset($user['id'])) {
-    json_out(['ok' => false, 'error' => 'Malformed response from backend'], 502);
-}
-
-$_SESSION['user'] = $user;
-
-$tokenPayload = base64_encode(json_encode([
-    'uid' => $user['id'],
-    'ts' => time(),
-    'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-]));
-set_auth_cookie($tokenPayload);
-
-json_out([
-    'ok' => true,
-    'message' => 'Login successful',
-    'user' => $user,
-    'token' => $tokenPayload,
-]);
-?>

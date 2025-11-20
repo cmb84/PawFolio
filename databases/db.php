@@ -2,10 +2,17 @@
 declare(strict_types=1);
 
 /**
- * Shared PDO factory for the IT490 database.
+ * Shared PDO factory for the PawFolio database.
  *  - Keeps one connection alive per PHP process.
  *  - Retries automatically on failure.
  *  - Allows environment variable overrides.
+ *
+ * Env vars (optional, with sensible defaults):
+ *  - DB_HOST  (default: 127.0.0.1)
+ *  - DB_PORT  (default: 3306)
+ *  - DB_NAME  (default: pawfolio)
+ *  - DB_USER  (default: pawfolio)
+ *  - DB_PASS  (default: changeme)
  */
 function getPDO(): PDO
 {
@@ -15,20 +22,19 @@ function getPDO(): PDO
     }
 
     $dbHost = getenv('DB_HOST') ?: '127.0.0.1';
-    $dbName = getenv('DB_NAME') ?: 'IT490';
-    $dbUser = getenv('DB_USER') ?: 'it490_user';
-    $dbPass = getenv('DB_PASS') ?: 'your_strong_pass';
+    $dbPort = getenv('DB_PORT') ?: '3306';
+    $dbName = getenv('DB_NAME') ?: 'pawfolio';
+    $dbUser = getenv('DB_USER') ?: 'pawfolio';
+    $dbPass = getenv('DB_PASS') ?: 'changeme';
 
-    $dsn = sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4', $dbHost, $dbName);
+    $dsn = "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4";
 
     $options = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
-        PDO::MYSQL_ATTR_INIT_COMMAND => "SET time_zone = '+00:00'"
     ];
 
-    // Basic retry loop in case MySQL isn’t ready yet
     $attempts = 0;
     while (true) {
         try {
@@ -40,10 +46,9 @@ function getPDO(): PDO
             if ($attempts >= 3) {
                 throw new RuntimeException('Database connection failed after 3 attempts', 0, $e);
             }
-            sleep(2); // brief back-off before retry
+            sleep(2); // small back-off before retry
         }
     }
 
     return $pdo;
 }
-?>

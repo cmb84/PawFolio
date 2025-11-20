@@ -8,100 +8,188 @@ import React, {
 } from "react";
 
 const AuthCtx = createContext(null);
+const API_BASE = "/api"; // assuming /frontend is served and /api/*.php lives next to it
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  async function apiFetch(url, options = {}) {
-    try {
-      const res = await fetch(url, {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(options.headers || {}),
-        },
-        cache: "no-store",
-        ...options,
-      });
+  /**
+   * Helper to call our PHP API with JSON + cookies.
+   */
+  const apiFetch = useCallback(async (path, options = {}) => {
+    const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
 
-      const data = await res.json().catch(() => ({}));
+    const fetchOpts = {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+      ...options,
+    };
 
-      if (!res.ok || data?.ok === false) {
-        const message = data?.error || `HTTP ${res.status}: ${res.statusText}`;
-        throw new Error(message);
-      }
-
-      return data;
-    } catch (err) {
-      console.error(`[API ERROR] ${url}:`, err);
-      throw err;
+    // If body is an object, JSON-encode it.
+    if (fetchOpts.body && typeof fetchOpts.body === "object") {
+      fetchOpts.body = JSON.stringify(fetchOpts.body);
     }
-  }
 
-  const refresh = useCallback(async () => {
+    const res = await fetch(url, fetchOpts);
+    let data = null;
     try {
-      const data = await apiFetch("/api/me.php");
-      if (data?.ok && data?.user) {
-        setUser(data.user);
+      data = await res.json();
+    } catch {
+      // ignore parse errors; we'll still return status
+    }
+
+    return {
+      httpOk: res.ok,
+      status: res.status,
+      data,
+      ok: data && typeof data.ok === "boolean" ? data.ok : res.ok,
+    };
+  }, []);
+
+  /**
+   * Refresh the current session (GET /api/me.php).
+   */
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await apiFetch("/me.php", { method: "GET" });
+      if (result.ok && result.data?.user) {
+        setUser(result.data.user);
       } else {
         setUser(null);
       }
-    } catch (err) {
-      console.warn("[Auth] Session check failed:", err.message);
+    } catch (e) {
+      console.error("refresh error", e);
       setUser(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiFetch]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  /**
+   * Login helper.
+   * Supports:
+   *   loginOk(email, password)
+   *   loginOk({ email, password })
+   */
+  const loginOk = useCallback(
+    async (...args) => {
+      let email;
+      let password;
 
-  const loginOk = async (email, password) => {
-    const data = await apiFetch("/api/login.php", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+      if (args.length === 1 && typeof args[0] === "object") {
+        ({ email, password } = args[0]);
+      } else {
+        [email, password] = args;
+      }
 
-    if (data?.ok && data?.user) {
-      setUser(data.user);
-      return true;
-    }
+      if (!email || !password) {
+        return { ok: false, error: "Email and password are required." };
+      }
 
-    throw new Error(data?.error || "Login failed");
-  };
+      try {
+        const result = await apiFetch("/login.php", {
+          method: "POST",
+          body: { email, password },
+        });
 
-  const registerOk = async (email, password, username) => {
-    const data = await apiFetch("/api/register.php", {
-      method: "POST",
-      body: JSON.stringify({ email, password, username }),
-    });
+        if (result.ok && result.data?.user) {
+          setUser(result.data.user);
+          return { ok: true, user: result.data.user };
+        }
 
-    if (data?.ok && data?.user) {
-      setUser(data.user);
-      return true;
-    }
+        const errMsg =
+          result.data?.error ||
+          (result.status === 401
+            ? "Invalid email or password."
+            : "Login failed.");
+        return { ok: false, error: errMsg };
+      } catch (e) {
+        console.error("login error", e);
+        return { ok: false, error: "Network or server error during login." };
+      }
+    },
+    [apiFetch]
+  );
 
-    throw new Error(data?.error || "Registration failed");
-  };
+  /**
+   * Register helper.
+   * Supports:
+   *   registerOk(username, email, password, confirm)
+   *   registerOk({ username, email, password, confirm })
+   */
+  const registerOk = useCallback(
+    async (...args) => {
+      let username;
+      let email;
+      let password;
+      let confirm;
 
+      if (args.length === 1 && typeof args[0] === "object") {
+        ({ username, email, password, confirm } = args[0]);
+      } else {
+        [username, email, password, confirm] = args;
+      }
+
+      if (!username || !email || !password || !confirm) {
+        return { ok: false, error: "All fields are required." };
+      }
+
+      try {
+        const result = await apiFetch("/register.php", {
+          method: "POST",
+          body: { username, email, password, confirm },
+        });
+
+        if (result.ok && result.data?.user) {
+          setUser(result.data.user);
+          return { ok: true, user: result.data.user };
+        }
+
+        const errMsg =
+          result.data?.error ||
+          (result.status === 409
+            ? "Email already in use."
+            : "Registration failed.");
+        return { ok: false, error: errMsg };
+      } catch (e) {
+        console.error("register error", e);
+        return {
+          ok: false,
+          error: "Network or server error during registration.",
+        };
+      }
+    },
+    [apiFetch]
+  );
+
+  /**
+   * Logout helper.
+   */
   const logout = useCallback(async () => {
     try {
-      await apiFetch("/api/logout.php", { method: "POST" });
-    } catch (err) {
-      console.warn("[Auth] Logout request failed:", err.message);
+      await apiFetch("/logout.php", { method: "POST" });
+    } catch (e) {
+      console.error("logout error", e);
     } finally {
       setUser(null);
     }
-  }, []);
+  }, [apiFetch]);
+
+  // On first load, check if we already have a session cookie
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   const value = useMemo(
     () => ({
       user,
       loading,
-      isAuthenticated: !!user,
       loginOk,
       registerOk,
       logout,
