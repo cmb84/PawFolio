@@ -13,42 +13,83 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  async function apiFetch(url, options = {}) {
-    try {
-      const res = await fetch(url, {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(options.headers || {}),
-        },
-        cache: "no-store",
-        ...options,
-      });
+  // Read token from localStorage
+  const getToken = () => localStorage.getItem("pawfolio_token");
 
-      const data = await res.json().catch(() => ({}));
+  async function apiFetch(path, options = {}) {
+    const token = getToken();
+    const headers = {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    };
 
-      if (!res.ok || data?.ok === false) {
-        const message = data?.error || `HTTP ${res.status}: ${res.statusText}`;
-        throw new Error(message);
-      }
-
-      return data;
-    } catch (err) {
-      console.error(`[API ERROR] ${url}:`, err);
-      throw err;
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
     }
+
+    const res = await fetch(path, {
+      ...options,
+      headers,
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const msg = data?.error || data?.message || "Request failed.";
+      throw new Error(msg);
+    }
+
+    return data;
   }
 
+  const loginOk = useCallback(async (email, password) => {
+    const data = await apiFetch("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (data?.token) {
+      localStorage.setItem("pawfolio_token", data.token);
+    }
+    if (data?.user) {
+      setUser(data.user);
+    }
+
+    return true;
+  }, []);
+
+  const registerOk = useCallback(async (username, email, password) => {
+    await apiFetch("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ username, email, password }),
+    });
+
+    // After successful registration, immediately log them in
+    await loginOk(email, password);
+    return true;
+  }, [loginOk]);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem("pawfolio_token");
+    setUser(null);
+  }, []);
+
   const refresh = useCallback(async () => {
+    const token = getToken();
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const data = await apiFetch("/api/me.php");
-      if (data?.ok && data?.user) {
+      const data = await apiFetch("/api/auth/me");
+      if (data?.user) {
         setUser(data.user);
-      } else {
-        setUser(null);
       }
     } catch (err) {
-      console.warn("[Auth] Session check failed:", err.message);
+      console.warn("Failed to refresh user:", err);
+      localStorage.removeItem("pawfolio_token");
       setUser(null);
     } finally {
       setLoading(false);
@@ -59,49 +100,10 @@ export function AuthProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  const loginOk = async (email, password) => {
-    const data = await apiFetch("/api/login.php", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (data?.ok && data?.user) {
-      setUser(data.user);
-      return true;
-    }
-
-    throw new Error(data?.error || "Login failed");
-  };
-
-  const registerOk = async (email, password, username) => {
-    const data = await apiFetch("/api/register.php", {
-      method: "POST",
-      body: JSON.stringify({ email, password, username }),
-    });
-
-    if (data?.ok && data?.user) {
-      setUser(data.user);
-      return true;
-    }
-
-    throw new Error(data?.error || "Registration failed");
-  };
-
-  const logout = useCallback(async () => {
-    try {
-      await apiFetch("/api/logout.php", { method: "POST" });
-    } catch (err) {
-      console.warn("[Auth] Logout request failed:", err.message);
-    } finally {
-      setUser(null);
-    }
-  }, []);
-
   const value = useMemo(
     () => ({
       user,
       loading,
-      isAuthenticated: !!user,
       loginOk,
       registerOk,
       logout,
