@@ -38,10 +38,13 @@ export default function Signup() {
       return;
     }
 
-    try {
+        try {
       setPending(true);
-      await registerOk(email, password, username);
-      nav("/dashboard");
+      // note the argument order: (username, email, password)
+      await registerOk(username, email, password);
+      // After registration, send them to login so they can sign in with MFA
+      nav("/login");
+
     } catch (err) {
       setMsg(err?.message || "Registration failed.");
     } finally {
