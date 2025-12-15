@@ -17,6 +17,7 @@ export default function Navbar() {
 
         <div className="nav-links">
           <NavLink to="/" className="nav-link">Home</NavLink>
+          {user && ( <NavLink to="/upload" className="nav-link">Upload</NavLink> )}
           <NavLink to="/about" className="nav-link">About</NavLink>
           {user && <NavLink to="/dashboard" className="nav-link">Dashboard</NavLink>}
         </div>
