@@ -4,9 +4,6 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import "./styles.css";
 import { AuthProvider } from "./auth/AuthProvider.jsx";
-import UserProfile from "./pages/UserProfile.jsx";
-
-<Route path="/profile" element={<UserProfile />} />
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
