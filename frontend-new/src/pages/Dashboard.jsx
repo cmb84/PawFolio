@@ -94,7 +94,7 @@ export default function Dashboard() {
               <MoodChip emoji="🐰" label="Rabbits" />
               <MoodChip emoji="🐦" label="Birds" />
               <MoodChip emoji="🦎" label="Reptiles" />
-              <button className="btn-cta">Upload a Pet →</button>
+              <button className="btn-cta" onClick={() => nav("/upload")}>Upload a Pet →</button>
             </div>
           </div>
         </div>

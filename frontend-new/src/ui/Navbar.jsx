@@ -8,32 +8,53 @@ export default function Navbar() {
     <nav className="nav-wrap">
       <div className="nav">
         <Link to="/" className="brand">
-          <img
-            src="/img/logo.png"         // ⬅️ from public/img/logo.png
-            alt="PawFolio logo"
-            className="brand-logo"
-          />
+          <img src="/img/logo.png" alt="PawFolio logo" className="brand-logo" />
         </Link>
 
         <div className="nav-links">
-          <NavLink to="/" className="nav-link">Home</NavLink>
-          <NavLink to="/about" className="nav-link">About</NavLink>
-          {user && <NavLink to="/dashboard" className="nav-link">Dashboard</NavLink>}
+          <NavLink to="/" className="nav-link">
+            Home
+          </NavLink>
+          <NavLink to="/about" className="nav-link">
+            About
+          </NavLink>
+
+          {user && (
+            <NavLink to="/upload" className="nav-link">
+              Upload
+            </NavLink>
+          )}
+
+          {user && (
+            <NavLink to="/dashboard" className="nav-link">
+              Dashboard
+            </NavLink>
+          )}
         </div>
 
         <div className="nav-right">
           {user ? (
             <details className="nav-user">
               <summary className="nav-user-btn">
-                <span className="avatar-sm">{user.username ? user.username[0].toUpperCase() : "U"}</span>
+                <span className="avatar-sm">
+                  {user.username ? user.username[0].toUpperCase() : "U"}
+                </span>
                 <span className="nav-user-name">{user.username}</span>
               </summary>
+
               <div className="nav-menu">
-                <button className="nav-menu-item" onClick={logout}>Logout</button>
+                <Link className="nav-menu-item" to="/profile">
+                  Profile
+                </Link>
+                <button className="nav-menu-item" onClick={logout}>
+                  Logout
+                </button>
               </div>
             </details>
           ) : (
-            <Link to="/login" className="btn-signin btn">Sign In</Link>
+            <Link to="/login" className="btn-signin btn">
+              Sign In
+            </Link>
           )}
         </div>
       </div>

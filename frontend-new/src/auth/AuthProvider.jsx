@@ -6,6 +6,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
+import { apiUrl } from "../lib/api";
 
 const AuthCtx = createContext(null);
 
@@ -17,20 +18,32 @@ export function AuthProvider({ children }) {
 
   /**
    * Unified API fetch helper
+   * - Automatically attaches Bearer token (if present)
+   * - Automatically JSON encodes bodies (unless body is FormData)
+   * - Works both with:
+   *   - Same-origin /api proxying (VITE_API_BASE_URL unset)
+   *   - Cross-origin API calls (VITE_API_BASE_URL set)
    */
   const apiFetch = useCallback(async (path, options = {}) => {
     const token = getToken();
 
     const headers = {
-      "Content-Type": "application/json",
       ...(options.headers || {}),
     };
+
+    // If the caller passed a plain object body, encode as JSON
+    const isFormData =
+      typeof FormData !== "undefined" && options.body instanceof FormData;
+
+    if (!isFormData) {
+      headers["Content-Type"] = headers["Content-Type"] || "application/json";
+    }
 
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const res = await fetch(path, {
+    const res = await fetch(apiUrl(path), {
       ...options,
       headers,
     });
@@ -132,12 +145,14 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       loading,
+      isAuthenticated: !!user,
       loginOk,
       registerOk,
       logout,
       refresh,
+      apiFetch, // exposed for convenience in pages (optional)
     }),
-    [user, loading, loginOk, registerOk, logout, refresh]
+    [user, loading, loginOk, registerOk, logout, refresh, apiFetch]
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;

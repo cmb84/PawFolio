@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./auth/AuthProvider";
+import { useAuth } from "./auth/AuthProvider";
 import Navbar from "./ui/Navbar";
 import Footer from "./ui/Footer";
 import Home from "./pages/Home";
@@ -7,15 +7,17 @@ import About from "./pages/About";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
+import Upload from "./pages/Upload";
+import UserProfile from "./pages/UserProfile";
 
 function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <div style={{ textAlign: "center", padding: "2rem" }}>Loading...</div>;
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
@@ -24,7 +26,7 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   return (
-    <AuthProvider>
+    <>
       <Navbar />
 
       <Routes>
@@ -41,9 +43,27 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/upload"
+          element={
+            <ProtectedRoute>
+              <Upload />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <UserProfile />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
 
       <Footer />
-    </AuthProvider>
+    </>
   );
 }
