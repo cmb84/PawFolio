@@ -7,7 +7,7 @@ import About from "./pages/About";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
-import Upload from "./pages/Upload"; // ✅ RESTORED
+import Upload from "./pages/Upload";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
