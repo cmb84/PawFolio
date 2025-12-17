@@ -7,6 +7,7 @@ import About from "./pages/About";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
+import Upload from "./pages/Upload"; // ✅ RESTORED
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -38,6 +39,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ RESTORED Upload Route */}
+        <Route
+          path="/upload"
+          element={
+            <ProtectedRoute>
+              <Upload />
             </ProtectedRoute>
           }
         />
