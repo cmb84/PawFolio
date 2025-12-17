@@ -2,7 +2,7 @@ const features = [
   {
     title: "Browse Movies",
     desc:
-      "Tell us how you feel and we’ll match that mood to films that fit—not just by genre, " +
+      "Tell us how you feel and we'll match that mood to films that fit—not just by genre, " +
       "but by emotional tone. See ratings, summaries, and where to watch across major " +
       "streaming services in one place.",
     icon: (
@@ -17,7 +17,7 @@ const features = [
     title: "Create Watchlists",
     desc:
       "Save mood-matched picks to watch later, build a personal favorites list, and keep " +
-      "track of what you’ve already seen. Your lists stay organized and easy to share.",
+      "track of what you've already seen. Your lists stay organized and easy to share.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.6"/>
