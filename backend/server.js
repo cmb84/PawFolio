@@ -5,6 +5,8 @@ const path = require("path");
 
 const authRoutes = require("./routes/auth");
 const uploadRoutes = require("./routes/upload");
+const postRoutes = require("./routes/posts");
+const userRoutes = require("./routes/users");
 
 dotenv.config();
 
@@ -32,6 +34,8 @@ app.use(
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/posts", postRoutes);
+app.use("/api/users", userRoutes);
 
 // Serve uploaded files
 const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, "uploads");
