@@ -41,9 +41,7 @@ export default function Navbar() {
                   Profile
                 </Link>
                 <button className="nav-menu-item" onClick={logout}>
-                  <Link className="nav-menu-item" to="/settings">
-                   Settings
-                    </Link>
+                 
 
                   Logout
                 </button>
