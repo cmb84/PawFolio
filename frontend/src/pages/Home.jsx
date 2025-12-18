@@ -1,5 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { apiUrl } from "../lib/api";
 
 export default function Home() {
   const { user } = useAuth();
@@ -11,7 +13,7 @@ export default function Home() {
     return "Good evening";
   }, []);
 
-  // Local photos from public/img (served from site root)
+  // Fallback demo content (used only if API isn't ready)
   const samplePets = [
     {
       name: "Aki",
@@ -64,8 +66,41 @@ export default function Home() {
     },
   ];
 
-  // Pet of the Day = first entry for now
-  const potd = samplePets[0];
+  const [posts, setPosts] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(apiUrl("/api/posts/recent?limit=24"));
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok && Array.isArray(data?.posts)) {
+          setPosts(data.posts);
+        }
+      } catch {
+        // ignore; will fall back to sample pets
+      } finally {
+        if (!cancelled) setLoadingPosts(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const hasPosts = posts.length > 0;
+
+  // Pet of the Day = most recent upload (or demo)
+  const potd = hasPosts
+    ? posts[0]
+    : {
+        petName: samplePets[0].name,
+        species: samplePets[0].species,
+        imageUrl: samplePets[0].image,
+        caption: samplePets[0].description,
+        user: { username: samplePets[0].username },
+      };
 
   return (
     <div className="page">
@@ -87,40 +122,67 @@ export default function Home() {
 
       <main className="container">
         {/* Pet of the Day */}
-        <section className="card" style={{ background: "var(--bg-0)", borderRadius: 14, padding: 16, marginTop: 22 }}>
-          <div className="card-header"><h3>🐶 Pet of the Day</h3></div>
-          <div className="card-body">
+        <section className="home-card">
+          <div className="home-card-header"><h3>🐶 Pet of the Day</h3></div>
+          <div className="home-card-body">
             <div className="potd">
-              <img className="potd-img" src={potd.image} alt={potd.name} />
+              <img className="potd-img" src={potd.imageUrl} alt={potd.petName} />
               <div className="potd-meta">
                 <h4>
-                  {potd.name} <span className="badge">{potd.species}</span>
+                  {potd.petName} <span className="badge">{potd.species}</span>
                 </h4>
-                <p>{potd.description}</p>
-                <p className="byline">by @{potd.username}</p>
+                <p>{potd.caption}</p>
+                {potd.user?.username ? (
+                  <p className="byline">
+                    by <Link className="byline-link" to={`/u/${potd.user.username}`}>@{potd.user.username}</Link>
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
         </section>
 
-        {/* Gallery */}
+        {/* Recent uploads */}
         <section style={{ marginTop: 24 }}>
-          <h3 className="section-title">Gallery</h3>
-          <div className="grid">
-            {samplePets.map((p, i) => (
-              <div key={i} className="pet-card">
-                <img src={p.image} alt={p.name} className="pet-img" />
-                <div className="pet-meta">
-                  <h4>{p.name}</h4>
-                  <div className="row">
-                    <span className="badge">{p.species}</span>
-                    <span className="byline">by @{p.username}</span>
+          <h3 className="section-title">Recent</h3>
+
+          {loadingPosts ? (
+            <div className="section-note">Loading recent uploads…</div>
+          ) : hasPosts ? (
+            <div className="ig-grid">
+              {posts.map((p) => (
+                <article key={p.id} className="ig-card">
+                  <img src={p.imageUrl} alt={p.petName} className="ig-img" loading="lazy" />
+                  <div className="ig-meta">
+                    <div className="ig-title-row">
+                      <div className="ig-title">{p.petName}</div>
+                      <span className="badge">{p.species}</span>
+                    </div>
+                    <div className="ig-byline">
+                      by <Link className="byline-link" to={`/u/${p.user.username}`}>@{p.user.username}</Link>
+                    </div>
+                    {p.caption ? <p className="ig-caption">{p.caption}</p> : null}
                   </div>
-                  <p>{p.description}</p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="grid">
+              {samplePets.map((p, i) => (
+                <div key={i} className="pet-card">
+                  <img src={p.image} alt={p.name} className="pet-img" />
+                  <div className="pet-meta">
+                    <h4>{p.name}</h4>
+                    <div className="row">
+                      <span className="badge">{p.species}</span>
+                      <span className="byline">by @{p.username}</span>
+                    </div>
+                    <p>{p.description}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>

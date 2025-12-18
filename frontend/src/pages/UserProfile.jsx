@@ -1,78 +1,216 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { apiUrl } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 
+function initials(name) {
+  const n = (name || "").trim();
+  if (!n) return "U";
+  return n[0].toUpperCase();
+}
+
 export default function UserProfile() {
-  const { user, loading, refresh } = useAuth();
+  const { user: authUser, loading } = useAuth();
+  const { username: routeUsername } = useParams();
+  const nav = useNavigate();
+
+  const username = routeUsername || authUser?.username || "";
+  const isOwnProfile = !!authUser && username && authUser.username === username;
+
+  const [profile, setProfile] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [stats, setStats] = useState({ postCount: 0 });
   const [error, setError] = useState("");
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  const [openPost, setOpenPost] = useState(null);
 
   useEffect(() => {
-    // If we have a token but user isn't loaded yet, try to refresh once.
-    if (!loading && !user) {
-      const token = localStorage.getItem("pawfolio_token");
-      if (token) {
-        refresh().catch(() => {});
-      } else {
-        setError("You are not logged in.");
-      }
+    if (!routeUsername && !loading && !authUser) {
+      // /profile without auth would be unreachable because it's protected,
+      // but keep this as a safe guard.
+      nav("/login", { replace: true });
     }
-  }, [loading, user, refresh]);
+  }, [routeUsername, loading, authUser, nav]);
 
-  const memberSince = useMemo(() => {
-    const v = user?.created_at || user?.createdAt || user?.created;
-    if (!v) return null;
-    const d = new Date(v);
-    if (Number.isNaN(d.getTime())) return null;
-    return d.toLocaleString();
-  }, [user]);
+  useEffect(() => {
+    if (!username) return;
 
-  if (loading) {
+    let cancelled = false;
+    setLoadingProfile(true);
+    setError("");
+
+    (async () => {
+      try {
+        const res = await fetch(apiUrl(`/api/users/${encodeURIComponent(username)}?limit=60`));
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || "Failed to load profile");
+
+        if (cancelled) return;
+
+        setProfile(data.user);
+        setPosts(Array.isArray(data.posts) ? data.posts : []);
+        setStats(data.stats || { postCount: 0 });
+      } catch (err) {
+        if (!cancelled) setError(err?.message || "Failed to load profile");
+      } finally {
+        if (!cancelled) setLoadingProfile(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [username]);
+
+  const title = useMemo(() => {
+    if (profile?.username) return `@${profile.username}`;
+    if (username) return `@${username}`;
+    return "Profile";
+  }, [profile, username]);
+
+  if (!username) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100">
-        <p>Loading profile…</p>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-950 text-red-400">
-        <p>{error}</p>
-      </main>
-    );
-  }
-
-  if (!user) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100">
-        <p>No profile available.</p>
+      <main className="page">
+        <header className="hero profile-hero">
+          <div className="container">
+            <h1 className="hero-title">Profile</h1>
+            <p className="hero-sub">No user selected.</p>
+          </div>
+        </header>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen flex justify-center bg-slate-950 text-slate-100 px-4 py-8">
-      <section className="w-full max-w-xl bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-xl">
-        <h1 className="text-2xl font-bold mb-4">Your Profile</h1>
-
-        <div className="space-y-3">
-          <div>
-            <label className="text-slate-400 text-sm">Username</label>
-            <p className="text-lg">{user.username}</p>
-          </div>
-
-          <div>
-            <label className="text-slate-400 text-sm">Email</label>
-            <p className="text-lg">{user.email}</p>
-          </div>
-
-          {memberSince && (
-            <div>
-              <label className="text-slate-400 text-sm">Member Since</label>
-              <p className="text-lg">{memberSince}</p>
-            </div>
-          )}
+    <main className="page">
+      <header className="hero profile-hero">
+        <div className="container">
+          <h1 className="hero-title">
+            {title} <span className="accent">PawFolio</span>
+          </h1>
+          <p className="hero-sub">
+            Public profile — share this link: <span className="mono">/u/{username}</span>
+          </p>
         </div>
+      </header>
+
+      <section className="container" style={{ marginTop: 22, marginBottom: 28 }}>
+        {loadingProfile ? (
+          <div className="section-note">Loading profile…</div>
+        ) : error ? (
+          <div className="error-card">
+            <div className="error-title">Couldn’t load this profile</div>
+            <div className="error-text">{error}</div>
+            <div style={{ marginTop: 12 }}>
+              <Link className="btn btn-cta" to="/">Back Home</Link>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="profile-header">
+              <div className="profile-avatar" aria-hidden="true">
+                {initials(profile?.username || username)}
+              </div>
+
+              <div className="profile-info">
+                <div className="profile-top">
+                  <div className="profile-name">@{profile?.username || username}</div>
+
+                  {isOwnProfile ? (
+                    <div className="profile-actions">
+                      <Link className="btn btn-cta" to="/upload">
+                        + New Post
+                      </Link>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="profile-stats">
+                  <div className="stat">
+                    <div className="stat-num">{stats?.postCount ?? posts.length}</div>
+                    <div className="stat-label">posts</div>
+                  </div>
+                  <div className="stat">
+                    <div className="stat-num">—</div>
+                    <div className="stat-label">followers</div>
+                  </div>
+                  <div className="stat">
+                    <div className="stat-num">—</div>
+                    <div className="stat-label">following</div>
+                  </div>
+                </div>
+
+                <div className="profile-bio">
+                  <span className="badge">🐾 PawFolio</span>
+                  <span className="bio-text">
+                    Pet posts by @{profile?.username || username}. Click any photo to view details.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="profile-divider" />
+
+            {posts.length === 0 ? (
+              <div className="section-note">
+                No posts yet. {isOwnProfile ? <Link to="/upload">Upload the first one →</Link> : null}
+              </div>
+            ) : (
+              <div className="ig-grid">
+                {posts.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="ig-tile"
+                    onClick={() => setOpenPost(p)}
+                    title={`${p.petName} (${p.species})`}
+                  >
+                    <img src={p.imageUrl} alt={p.petName} className="ig-tile-img" loading="lazy" />
+                    <div className="ig-tile-overlay">
+                      <div className="ig-tile-title">{p.petName}</div>
+                      <div className="ig-tile-sub">{p.species}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </section>
+
+      {openPost ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={() => setOpenPost(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-x" type="button" onClick={() => setOpenPost(null)} aria-label="Close">
+              ×
+            </button>
+
+            <div className="modal-body">
+              <div className="modal-media">
+                <img src={openPost.imageUrl} alt={openPost.petName} className="modal-img" />
+              </div>
+
+              <div className="modal-info">
+                <div className="modal-header">
+                  <div className="modal-title">
+                    {openPost.petName} <span className="badge">{openPost.species}</span>
+                  </div>
+                  <div className="modal-byline">
+                    by <Link className="byline-link" to={`/u/${username}`}>@{username}</Link>
+                  </div>
+                </div>
+
+                {openPost.caption ? <p className="modal-caption">{openPost.caption}</p> : null}
+
+                <div className="modal-meta">
+                  <span className="muted">Posted:</span> {openPost.createdAt ? new Date(openPost.createdAt).toLocaleString() : "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

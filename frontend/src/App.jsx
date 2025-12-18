@@ -6,7 +6,6 @@ import Home from "./pages/Home";
 import About from "./pages/About";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import Dashboard from "./pages/Dashboard";
 import Upload from "./pages/Upload";
 import UserProfile from "./pages/UserProfile";
 
@@ -35,14 +34,8 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+        {/* Dashboard removed (redundant). Keep a redirect for old bookmarks. */}
+        <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
         <Route
           path="/upload"
@@ -61,6 +54,9 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Public profiles (Instagram-style) */}
+        <Route path="/u/:username" element={<UserProfile />} />
       </Routes>
 
       <Footer />

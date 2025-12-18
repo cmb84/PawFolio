@@ -24,12 +24,6 @@ export default function Navbar() {
               Upload
             </NavLink>
           )}
-
-          {user && (
-            <NavLink to="/dashboard" className="nav-link">
-              Dashboard
-            </NavLink>
-          )}
         </div>
 
         <div className="nav-right">
@@ -43,7 +37,7 @@ export default function Navbar() {
               </summary>
 
               <div className="nav-menu">
-                <Link className="nav-menu-item" to="/profile">
+                <Link className="nav-menu-item" to={`/u/${user.username}`}>
                   Profile
                 </Link>
                 <button className="nav-menu-item" onClick={logout}>
