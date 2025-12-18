@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import { Link } from "react-router-dom";
 
+
 export default function Home() {
   const { user } = useAuth();
 
