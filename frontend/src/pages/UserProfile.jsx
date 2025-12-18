@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiUrl } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
+import PostModal from "../components/PostModal";
 
 function initials(name) {
   const n = (name || "").trim();
@@ -221,38 +222,7 @@ export default function UserProfile() {
         )}
       </section>
 
-      {openPost ? (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={() => setOpenPost(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-x" type="button" onClick={() => setOpenPost(null)} aria-label="Close">
-              ×
-            </button>
-
-            <div className="modal-body">
-              <div className="modal-media">
-                <img src={postImageSrc(openPost)} alt={openPost.petName} className="modal-img" />
-              </div>
-
-              <div className="modal-info">
-                <div className="modal-header">
-                  <div className="modal-title">
-                    {openPost.petName} <span className="badge">{openPost.species}</span>
-                  </div>
-                  <div className="modal-byline">
-                    by <Link className="byline-link" to={`/u/${username}`}>@{username}</Link>
-                  </div>
-                </div>
-
-                {openPost.caption ? <p className="modal-caption">{openPost.caption}</p> : null}
-
-                <div className="modal-meta">
-                  <span className="muted">Posted:</span> {openPost.createdAt ? new Date(openPost.createdAt).toLocaleString() : "—"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <PostModal post={openPost} onClose={() => setOpenPost(null)} />
     </main>
   );
 }

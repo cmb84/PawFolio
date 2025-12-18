@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { apiUrl } from "../lib/api";
 import EmojiReactions from "../components/EmojiReactions";
+import PostModal from "../components/PostModal";
 
 export default function Home() {
   const { user } = useAuth();
@@ -34,6 +35,7 @@ export default function Home() {
 
   const [posts, setPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
+  const [openPost, setOpenPost] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,11 +116,26 @@ export default function Home() {
 
           <div className="home-card-body">
             <div className="potd">
-              <img
-                className="potd-img"
-                src={apiUrl(potd.imagePath || potd.imageUrl)}
-                alt={potd.petName}
-              />
+              {hasPosts ? (
+                <button
+                  type="button"
+                  className="media-btn"
+                  onClick={() => setOpenPost(potd)}
+                  title="View details"
+                >
+                  <img
+                    className="potd-img"
+                    src={apiUrl(potd.imagePath || potd.imageUrl)}
+                    alt={potd.petName}
+                  />
+                </button>
+              ) : (
+                <img
+                  className="potd-img"
+                  src={apiUrl(potd.imagePath || potd.imageUrl)}
+                  alt={potd.petName}
+                />
+              )}
 
               <div className="potd-meta">
                 <h4>
@@ -158,11 +175,18 @@ export default function Home() {
               <div className="ig-grid">
                 {posts.map((p) => (
                   <article key={p.id} className="ig-card">
-                    <img
-                      src={apiUrl(p.imagePath || p.imageUrl)}
-                      alt={p.petName}
-                      className="ig-img"
-                    />
+                    <button
+                      type="button"
+                      className="media-btn"
+                      onClick={() => setOpenPost(p)}
+                      title="View details"
+                    >
+                      <img
+                        src={apiUrl(p.imagePath || p.imageUrl)}
+                        alt={p.petName}
+                        className="ig-img"
+                      />
+                    </button>
 
                     <div className="ig-meta">
                       <div className="ig-title-row">
@@ -194,6 +218,8 @@ export default function Home() {
           </section>
         )}
       </main>
+
+      <PostModal post={openPost} onClose={() => setOpenPost(null)} />
     </div>
   );
 }

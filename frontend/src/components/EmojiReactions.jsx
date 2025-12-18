@@ -13,7 +13,7 @@ const EMOJIS = [
 ];
 
 export default function EmojiReactions({ postId }) {
-  const { user } = useAuth();
+  const { user, apiFetch } = useAuth();
   const navigate = useNavigate();
 
   const [counts, setCounts] = useState({});
@@ -48,12 +48,9 @@ export default function EmojiReactions({ postId }) {
     }
 
     try {
-      await fetch(apiUrl(`/api/reactions/${postId}`), {
+      // apiFetch automatically attaches Bearer token (pawfolio_token)
+      await apiFetch(`/api/reactions/${postId}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
         body: JSON.stringify({ emoji: emojiKey }),
       });
 
