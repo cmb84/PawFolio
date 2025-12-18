@@ -2,8 +2,8 @@
 -- Run this against your existing database (the one that already has the `users` table).
 
 CREATE TABLE IF NOT EXISTS posts (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
   pet_name VARCHAR(100) NOT NULL,
   species VARCHAR(60) NOT NULL,
   caption TEXT NULL,
@@ -16,4 +16,4 @@ CREATE TABLE IF NOT EXISTS posts (
   CONSTRAINT fk_posts_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

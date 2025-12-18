@@ -10,7 +10,7 @@ function publicBase(req) {
 }
 
 function toInt(v, fallback) {
-  const n = Number(v);
+  const n = parseInt(v, 10);
   return Number.isFinite(n) ? n : fallback;
 }
 
@@ -47,16 +47,15 @@ router.get("/:username", async (req, res) => {
       [user.id]
     );
 
-    const [prows] = await pool.execute(
-      `
+    const postsSql = `
       SELECT id, pet_name, species, caption, image_path, created_at
       FROM posts
       WHERE user_id = ?
       ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-      `,
-      [user.id, limit, offset]
-    );
+      LIMIT ${limit} OFFSET ${offset}
+      `;
+
+    const [prows] = await pool.execute(postsSql, [user.id]);
 
     const base = publicBase(req);
     const posts = prows.map((p) => ({

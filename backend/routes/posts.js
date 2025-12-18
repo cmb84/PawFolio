@@ -27,7 +27,7 @@ function publicBase(req) {
 }
 
 function toInt(v, fallback) {
-  const n = Number(v);
+  const n = parseInt(v, 10);
   return Number.isFinite(n) ? n : fallback;
 }
 
@@ -59,8 +59,7 @@ router.get("/recent", async (req, res) => {
   try {
     const limit = Math.min(Math.max(toInt(req.query.limit, 24), 1), 60);
 
-    const [rows] = await pool.execute(
-      `
+    const sql = `
       SELECT
         p.id,
         p.user_id,
@@ -73,10 +72,10 @@ router.get("/recent", async (req, res) => {
       FROM posts p
       JOIN users u ON u.id = p.user_id
       ORDER BY p.created_at DESC
-      LIMIT ?
-      `,
-      [limit]
-    );
+      LIMIT ${limit}
+      `;
+
+    const [rows] = await pool.query(sql);
 
     const base = publicBase(req);
     const posts = rows.map((r) => ({
