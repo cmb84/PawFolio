@@ -40,6 +40,9 @@ export default function Navbar() {
                 <Link className="nav-menu-item" to={`/u/${user.username}`}>
                   Profile
                 </Link>
+                <Link className="nav-menu-item" to="/settings">
+                  Settings
+                </Link>
                 <button className="nav-menu-item" onClick={logout}>
                   Logout
                 </button>

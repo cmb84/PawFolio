@@ -122,6 +122,10 @@ export default function UserProfile() {
                       <Link className="btn btn-cta" to="/upload">
                         + New Post
                       </Link>
+
+                      <Link className="btn btn-ghost" to="/settings">
+                        Settings
+                      </Link>
                     </div>
                   ) : null}
                 </div>
