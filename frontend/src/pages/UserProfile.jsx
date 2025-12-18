@@ -147,10 +147,16 @@ export default function UserProfile() {
 
                   <div className="profile-actions">
                     {isOwnProfile ? (
-                      <Link className="btn btn-cta" to="/upload">
-                        + New Post
-                      </Link>
-                    ) : canFollow ? (
+  <>
+                  <Link className="btn btn-cta" to="/upload">
+                   + New Post
+                    </Link>
+                   <Link className="btn btn-ghost" to="/settings">
+                   Settings
+                  </Link>
+                 </>
+                ) : canFollow ? (
+
                       <button className="btn btn-cta" onClick={toggleFollow}>
                         {stats?.isFollowing ? "Unfollow" : "Follow"}
                       </button>

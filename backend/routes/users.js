@@ -2,6 +2,9 @@ const express = require("express");
 const pool = require("../db");
 const jwt = require("jsonwebtoken");
 const { requireAuth } = require("../middleware/auth");
+const bcrypt = require("bcryptjs");
+const fs = require("fs");
+const path = require("path");
 
 const router = express.Router();
 
@@ -50,6 +53,165 @@ function optionalViewerId(req) {
     return null;
   }
 }
+/**
+ * PATCH /api/users/me
+ * Auth: change email and/or password (requires current password)
+ * Body:
+ *   - currentPassword (required)
+ *   - email (optional)
+ *   - newPassword (optional)
+ */
+router.patch("/me", requireAuth, async (req, res) => {
+  const userId = req.user.id;
+
+  const email = typeof req.body?.email === "string" ? req.body.email.trim() : undefined;
+  const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+  const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : undefined;
+
+  if (!currentPassword) {
+    return res.status(400).json({ error: "Current password is required" });
+  }
+  if (email === undefined && newPassword === undefined) {
+    return res.status(400).json({ error: "No changes provided" });
+  }
+
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, username, email, password_hash FROM users WHERE id = ? LIMIT 1",
+      [userId]
+    );
+    if (!rows.length) return res.status(401).json({ error: "User not found" });
+
+    const user = rows[0];
+    const ok = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!ok) return res.status(400).json({ error: "Incorrect password" });
+
+    const updates = [];
+    const params = [];
+
+    if (email !== undefined) {
+      if (!email) return res.status(400).json({ error: "Email is required" });
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      if (email !== user.email) {
+        const [dupe] = await pool.execute(
+          "SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1",
+          [email, userId]
+        );
+        if (dupe.length) return res.status(409).json({ error: "Email is already in use" });
+
+        updates.push("email = ?");
+        params.push(email);
+      }
+    }
+
+    if (newPassword !== undefined) {
+      if (!newPassword || newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+      const hashed = await bcrypt.hash(newPassword, 10);
+      updates.push("password_hash = ?");
+      params.push(hashed);
+    }
+
+    if (updates.length) {
+      params.push(userId);
+      await pool.execute(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`, params);
+    }
+
+    const [u2] = await pool.execute(
+      "SELECT id, username, email FROM users WHERE id = ? LIMIT 1",
+      [userId]
+    );
+    const updated = u2[0];
+
+    const token = jwt.sign(
+      { id: updated.id, email: updated.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    return res.json({ ok: true, token, user: updated });
+  } catch (err) {
+    console.error("[users/me PATCH]", err);
+    return res.status(500).json({ error: "Failed to update account" });
+  }
+});
+
+/**
+ * DELETE /api/users/me
+ * Auth: delete account (requires password + typing DELETE)
+ * Body:
+ *   - password (required)
+ *   - confirm (must equal "DELETE")
+ */
+router.delete("/me", requireAuth, async (req, res) => {
+  const userId = req.user.id;
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  const confirm = typeof req.body?.confirm === "string" ? req.body.confirm.trim() : "";
+
+  if (!password) return res.status(400).json({ error: "Password is required" });
+  if (confirm !== "DELETE") return res.status(400).json({ error: 'Type "DELETE" to confirm deletion' });
+
+  const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, "..", "uploads");
+
+  let conn;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, password_hash FROM users WHERE id = ? LIMIT 1",
+      [userId]
+    );
+    if (!rows.length) return res.status(401).json({ error: "User not found" });
+
+    const ok = await bcrypt.compare(password, rows[0].password_hash);
+    if (!ok) return res.status(400).json({ error: "Incorrect password" });
+
+    // Get list of images to delete (best-effort)
+    const [prows] = await pool.execute(
+      "SELECT image_path FROM posts WHERE user_id = ?",
+      [userId]
+    );
+    const filesToDelete = (prows || [])
+      .map((r) => r.image_path)
+      .filter(Boolean)
+      .map((p) => p.replace(/^\/uploads\//, ""))
+      .map((fname) => path.join(uploadDir, fname));
+
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // Clean follows table (if present)
+    await conn.execute("DELETE FROM follows WHERE follower_id = ? OR following_id = ?", [userId, userId]);
+
+    // Delete posts (uploads cleanup happens after commit)
+    await conn.execute("DELETE FROM posts WHERE user_id = ?", [userId]);
+
+    // Delete user
+    await conn.execute("DELETE FROM users WHERE id = ? LIMIT 1", [userId]);
+
+    await conn.commit();
+    conn.release();
+    conn = null;
+
+    // Best-effort remove files
+    for (const fpath of filesToDelete) {
+      try {
+        fs.unlinkSync(fpath);
+      } catch (_) {}
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    if (conn) {
+      try { await conn.rollback(); } catch (_) {}
+      try { conn.release(); } catch (_) {}
+    }
+    console.error("[users/me DELETE]", err);
+    return res.status(500).json({ error: "Failed to delete account" });
+  }
+});
 
 /**
  * GET /api/users/:username

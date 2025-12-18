@@ -8,6 +8,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Upload from "./pages/Upload";
 import UserProfile from "./pages/UserProfile";
+import Settings from "./pages/Settings";
+
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -54,6 +56,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+           path="/settings"
+         element={
+     <ProtectedRoute>
+      <Settings />
+    </ProtectedRoute>
+  }
+/>
 
         {/* Public profiles (Instagram-style) */}
         <Route path="/u/:username" element={<UserProfile />} />
