@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { apiUrl } from "../lib/api";
+import EmojiReactions from "../components/EmojiReactions";
 
 export default function Home() {
   const { user } = useAuth();
@@ -13,7 +14,7 @@ export default function Home() {
     return "Good evening";
   }, []);
 
-  // Fallback demo content (used only if API isn't ready)
+  /* ---------- Demo fallback ---------- */
   const samplePets = [
     {
       name: "Aki",
@@ -29,41 +30,6 @@ export default function Home() {
       username: "alex",
       description: "Accidentally opened selfie mode. Regrets nothing. 📸😼",
     },
-    {
-      name: "Momo (Model Pose)",
-      species: "Cat",
-      image: "/img/momo.jpg",
-      username: "riley",
-      description: "Sits like a gentleman. Demands treats like a dragon. 🍗🐉",
-    },
-    {
-      name: "Charlie",
-      species: "Sun Conure",
-      image: "/img/charliebird.jpg",
-      username: "cmb84",
-      description: "Volume set to 11, colors set to WOW. 🔊🟠🟢",
-    },
-    {
-      name: "Cosho",
-      species: "Cat",
-      image: "/img/cosho.jpg",
-      username: "ari",
-      description: "Certified floral inspector. Sniffs, approves, supervises. 🌻👃",
-    },
-    {
-      name: "Minerva",
-      species: "Cat",
-      image: "/img/minerva.jpg",
-      username: "sam",
-      description: "Void with whiskers. Appears when snacks are mentioned. 🌑✨",
-    },
-    {
-      name: "Golden",
-      species: "Dog",
-      image: "/img/Golden.jpg",
-      username: "team",
-      description: "Beach zoomies champion. Will trade ball for compliments. 🏖️🎾",
-    },
   ];
 
   const [posts, setPosts] = useState([]);
@@ -76,11 +42,12 @@ export default function Home() {
       try {
         const res = await fetch(apiUrl("/api/posts/recent?limit=24"));
         const data = await res.json().catch(() => ({}));
+
         if (!cancelled && res.ok && Array.isArray(data?.posts)) {
           setPosts(data.posts);
         }
       } catch {
-        // fallback handled below
+        // fallback used below
       } finally {
         if (!cancelled) setLoadingPosts(false);
       }
@@ -93,10 +60,11 @@ export default function Home() {
 
   const hasPosts = posts.length > 0;
 
-  // 🐶 Pet of the Day = most recent post OR demo fallback
+  /* ---------- Pet of the Day ---------- */
   const potd = hasPosts
     ? posts[0]
     : {
+        id: "potd",
         petName: samplePets[0].name,
         species: samplePets[0].species,
         imageUrl: samplePets[0].image,
@@ -106,7 +74,7 @@ export default function Home() {
 
   return (
     <div className="page">
-      {/* Hero banner */}
+      {/* Hero */}
       <header className="hero pawfolio-hero">
         <div className="container">
           <h1 className="hero-title">
@@ -138,7 +106,7 @@ export default function Home() {
       </header>
 
       <main className="container">
-        {/* 🐶 Pet of the Day — ALWAYS visible */}
+        {/* 🐶 Pet of the Day */}
         <section className="home-card">
           <div className="home-card-header">
             <h3>🐶 Pet of the Day</h3>
@@ -151,12 +119,15 @@ export default function Home() {
                 src={apiUrl(potd.imagePath || potd.imageUrl)}
                 alt={potd.petName}
               />
+
               <div className="potd-meta">
                 <h4>
                   {potd.petName}{" "}
                   <span className="badge">{potd.species}</span>
                 </h4>
+
                 <p>{potd.caption}</p>
+
                 {potd.user?.username && (
                   <p className="byline">
                     by{" "}
@@ -168,20 +139,21 @@ export default function Home() {
                     </Link>
                   </p>
                 )}
+
+                {/* ✅ Reactions tied to potd.id */}
+                <EmojiReactions postId={potd.id} />
               </div>
             </div>
           </div>
         </section>
 
-        {/* 🔐 Recent uploads — ONLY when logged in */}
+        {/* 🔐 Recent uploads */}
         {user && (
           <section style={{ marginTop: 24 }}>
             <h3 className="section-title">Recent</h3>
 
             {loadingPosts ? (
-              <div className="section-note">
-                Loading recent uploads…
-              </div>
+              <div className="section-note">Loading recent uploads…</div>
             ) : hasPosts ? (
               <div className="ig-grid">
                 {posts.map((p) => (
@@ -190,13 +162,14 @@ export default function Home() {
                       src={apiUrl(p.imagePath || p.imageUrl)}
                       alt={p.petName}
                       className="ig-img"
-                      loading="lazy"
                     />
+
                     <div className="ig-meta">
                       <div className="ig-title-row">
                         <div className="ig-title">{p.petName}</div>
                         <span className="badge">{p.species}</span>
                       </div>
+
                       <div className="ig-byline">
                         by{" "}
                         <Link
@@ -206,36 +179,18 @@ export default function Home() {
                           @{p.user.username}
                         </Link>
                       </div>
+
                       {p.caption && (
                         <p className="ig-caption">{p.caption}</p>
                       )}
+
+                      {/* ✅ Reactions tied to post.id */}
+                      <EmojiReactions postId={p.id} />
                     </div>
                   </article>
                 ))}
               </div>
-            ) : (
-              <div className="grid">
-                {samplePets.map((p, i) => (
-                  <div key={i} className="pet-card">
-                    <img
-                      src={p.image}
-                      alt={p.name}
-                      className="pet-img"
-                    />
-                    <div className="pet-meta">
-                      <h4>{p.name}</h4>
-                      <div className="row">
-                        <span className="badge">{p.species}</span>
-                        <span className="byline">
-                          by @{p.username}
-                        </span>
-                      </div>
-                      <p>{p.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            ) : null}
           </section>
         )}
       </main>
