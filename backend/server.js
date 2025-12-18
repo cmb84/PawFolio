@@ -31,6 +31,8 @@ app.use(
   })
 );
 
+const reactionsRoutes = require("./routes/reactions");
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes);
