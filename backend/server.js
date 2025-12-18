@@ -9,6 +9,8 @@ const authRoutes = require("./routes/auth");
 const uploadRoutes = require("./routes/upload");
 const postRoutes = require("./routes/posts");
 const userRoutes = require("./routes/users");
+const reactionsRoutes = require("./routes/reactions");
+const commentsRoutes = require("./routes/comments");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -31,12 +33,12 @@ app.use(
   })
 );
 
-const reactionsRoutes = require("./routes/reactions");
-
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/reactions", reactionsRoutes);
+app.use("/api/comments", commentsRoutes);
 app.use("/api/users", userRoutes);
 
 // Serve uploaded files
