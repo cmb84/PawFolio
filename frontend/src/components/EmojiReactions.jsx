@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "../lib/api";
 
 const EMOJIS = [
   { key: "heart", label: "❤️" },
@@ -15,58 +16,72 @@ export default function EmojiReactions({ postId }) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // reaction counts for THIS post
-  const [counts, setCounts] = useState(() =>
-    EMOJIS.reduce((acc, e) => {
-      acc[e.key] = 0;
-      return acc;
-    }, {})
-  );
+  const [counts, setCounts] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  // reactions by THIS user for THIS post
-  const [userReactions, setUserReactions] = useState({});
+  /* ---------- Load reactions from backend ---------- */
+  async function loadReactions() {
+    try {
+      const res = await fetch(apiUrl(`/api/reactions/${postId}`));
+      const data = await res.json();
 
-  function handleReact(key) {
+      if (res.ok && data?.counts) {
+        setCounts(data.counts);
+      }
+    } catch {
+      // ignore silently
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadReactions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId]);
+
+  /* ---------- Toggle reaction ---------- */
+  async function handleReact(emojiKey) {
     if (!user) {
       navigate("/login");
       return;
     }
 
-    setCounts((prev) => ({
-      ...prev,
-      [key]: prev[key] + (userReactions[key] ? -1 : 1),
-    }));
+    try {
+      await fetch(apiUrl(`/api/reactions/${postId}`), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ emoji: emojiKey }),
+      });
 
-    setUserReactions((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+      // 🔁 Re-fetch shared counts after update
+      await loadReactions();
+    } catch (err) {
+      console.error("Reaction failed:", err);
+    }
+  }
 
-    /*
-      🔜 Backend-ready hook
-      POST /api/posts/:postId/reactions
-      body: { emoji: key }
-    */
+  if (loading) {
+    return null;
   }
 
   return (
     <div className="emoji-reactions" data-post-id={postId}>
-      {EMOJIS.map((e) => {
-        const active = userReactions[e.key];
-
-        return (
-          <button
-            key={e.key}
-            className={`emoji-btn ${active ? "active" : ""}`}
-            onClick={() => handleReact(e.key)}
-            disabled={!user}
-            title={user ? "React" : "Sign in to react"}
-          >
-            <span className="emoji">{e.label}</span>
-            <span className="emoji-count">{counts[e.key]}</span>
-          </button>
-        );
-      })}
+      {EMOJIS.map((e) => (
+        <button
+          key={e.key}
+          className="emoji-btn"
+          onClick={() => handleReact(e.key)}
+          disabled={!user}
+          title={user ? "React" : "Sign in to react"}
+        >
+          <span className="emoji">{e.label}</span>
+          <span className="emoji-count">{counts[e.key] || 0}</span>
+        </button>
+      ))}
     </div>
   );
 }
