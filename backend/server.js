@@ -3,12 +3,12 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
 
+dotenv.config();
+
 const authRoutes = require("./routes/auth");
 const uploadRoutes = require("./routes/upload");
 const postRoutes = require("./routes/posts");
 const userRoutes = require("./routes/users");
-
-dotenv.config();
 
 const app = express();
 app.set("trust proxy", 1);
