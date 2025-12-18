@@ -10,12 +10,15 @@ import Upload from "./pages/Upload";
 import UserProfile from "./pages/UserProfile";
 import Settings from "./pages/Settings";
 
-
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div style={{ textAlign: "center", padding: "2rem" }}>Loading...</div>;
+    return (
+      <div style={{ textAlign: "center", padding: "2rem" }}>
+        Loading...
+      </div>
+    );
   }
 
   if (!user) {
@@ -31,14 +34,16 @@ export default function App() {
       <Navbar />
 
       <Routes>
+        {/* 🔓 PUBLIC ROUTES */}
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* Dashboard removed (redundant). Keep a redirect for old bookmarks. */}
+        {/* Legacy dashboard redirect */}
         <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
+        {/* 🔐 PROTECTED ROUTES */}
         <Route
           path="/upload"
           element={
@@ -56,16 +61,17 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-           path="/settings"
-         element={
-     <ProtectedRoute>
-      <Settings />
-    </ProtectedRoute>
-  }
-/>
 
-        {/* Public profiles (Instagram-style) */}
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 🌐 Public profiles (Instagram-style) */}
         <Route path="/u/:username" element={<UserProfile />} />
       </Routes>
 

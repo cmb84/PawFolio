@@ -7,18 +7,26 @@ export default function Navbar() {
   return (
     <nav className="nav-wrap">
       <div className="nav">
+        {/* Brand */}
         <Link to="/" className="brand">
-          <img src="/img/logo.png" alt="PawFolio logo" className="brand-logo" />
+          <img
+            src="/img/logo.png"
+            alt="PawFolio logo"
+            className="brand-logo"
+          />
         </Link>
 
+        {/* Main nav links */}
         <div className="nav-links">
           <NavLink to="/" className="nav-link">
             Home
           </NavLink>
+
           <NavLink to="/about" className="nav-link">
             About
           </NavLink>
 
+          {/* 🔐 Auth-only links */}
           {user && (
             <NavLink to="/upload" className="nav-link">
               Upload
@@ -26,23 +34,34 @@ export default function Navbar() {
           )}
         </div>
 
+        {/* Right side */}
         <div className="nav-right">
           {user ? (
             <details className="nav-user">
               <summary className="nav-user-btn">
                 <span className="avatar-sm">
-                  {user.username ? user.username[0].toUpperCase() : "U"}
+                  {user.username
+                    ? user.username[0].toUpperCase()
+                    : "U"}
                 </span>
-                <span className="nav-user-name">{user.username}</span>
+                <span className="nav-user-name">
+                  {user.username}
+                </span>
               </summary>
 
               <div className="nav-menu">
-                <Link className="nav-menu-item" to={`/u/${user.username}`}>
+                {/* Public profile page */}
+                <Link
+                  className="nav-menu-item"
+                  to={`/u/${user.username}`}
+                >
                   Profile
                 </Link>
-                <button className="nav-menu-item" onClick={logout}>
-                 
 
+                <button
+                  className="nav-menu-item"
+                  onClick={logout}
+                >
                   Logout
                 </button>
               </div>
