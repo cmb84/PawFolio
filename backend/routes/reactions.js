@@ -1,5 +1,5 @@
 const express = require("express");
-const auth = require("../middleware/auth");
+const { requireAuth } = require("../middleware/auth"); // ✅ correct import
 const {
   getReactionsForPost,
   toggleReaction,
@@ -7,10 +7,10 @@ const {
 
 const router = express.Router();
 
-// Public: get reaction counts for a post
+// Public: fetch reaction counts
 router.get("/:postId", getReactionsForPost);
 
-// Protected: add/remove reaction
-router.post("/:postId", auth, toggleReaction);
+// Protected: toggle reaction
+router.post("/:postId", requireAuth, toggleReaction);
 
 module.exports = router;
