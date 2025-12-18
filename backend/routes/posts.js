@@ -22,12 +22,13 @@ const allowedMime = new Set([
 
 function publicBase(req) {
   const env = (process.env.PUBLIC_BASE_URL || "").replace(/\/$/, "");
+  // If not set, return empty and let the frontend resolve relative /uploads/... URLs.
   if (env) return env;
-  return `${req.protocol}://${req.get("host")}`;
+  return "";
 }
 
 function toInt(v, fallback) {
-  const n = parseInt(v, 10);
+  const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
 }
 
@@ -59,7 +60,10 @@ router.get("/recent", async (req, res) => {
   try {
     const limit = Math.min(Math.max(toInt(req.query.limit, 24), 1), 60);
 
-    const sql = `
+    // NOTE: MySQL prepared statements don't reliably support placeholders in LIMIT/OFFSET
+    // across environments. We safely interpolate after clamping to an integer.
+    const [rows] = await pool.execute(
+      `
       SELECT
         p.id,
         p.user_id,
@@ -73,9 +77,8 @@ router.get("/recent", async (req, res) => {
       JOIN users u ON u.id = p.user_id
       ORDER BY p.created_at DESC
       LIMIT ${limit}
-      `;
-
-    const [rows] = await pool.query(sql);
+      `
+    );
 
     const base = publicBase(req);
     const posts = rows.map((r) => ({
@@ -84,6 +87,7 @@ router.get("/recent", async (req, res) => {
       species: r.species,
       caption: r.caption,
       imagePath: r.image_path,
+      // imageUrl is intentionally relative by default (unless PUBLIC_BASE_URL is set)
       imageUrl: r.image_path ? `${base}${r.image_path}` : null,
       createdAt: r.created_at,
       user: { id: r.user_id, username: r.username },
