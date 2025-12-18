@@ -152,7 +152,12 @@ export default function Home() {
             <div className="ig-grid">
               {posts.map((p) => (
                 <article key={p.id} className="ig-card">
-                  <img src={p.imageUrl} alt={p.petName} className="ig-img" loading="lazy" />
+                  <img
+                    src={apiUrl(p?.imagePath || p?.imageUrl || "")}
+                    alt={p.petName}
+                    className="ig-img"
+                    loading="lazy"
+                  />
                   <div className="ig-meta">
                     <div className="ig-title-row">
                       <div className="ig-title">{p.petName}</div>

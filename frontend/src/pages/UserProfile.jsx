@@ -10,7 +10,7 @@ function initials(name) {
 }
 
 export default function UserProfile() {
-  const { user: authUser, loading } = useAuth();
+  const { user: authUser, loading, apiFetch } = useAuth();
   const { username: routeUsername } = useParams();
   const nav = useNavigate();
 
@@ -19,7 +19,7 @@ export default function UserProfile() {
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
-  const [stats, setStats] = useState({ postCount: 0 });
+  const [stats, setStats] = useState({ postCount: 0, followerCount: 0, followingCount: 0, isFollowing: false });
   const [error, setError] = useState("");
   const [loadingProfile, setLoadingProfile] = useState(true);
 
@@ -42,15 +42,15 @@ export default function UserProfile() {
 
     (async () => {
       try {
-        const res = await fetch(apiUrl(`/api/users/${encodeURIComponent(username)}?limit=60`));
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.error || "Failed to load profile");
+        const data = await apiFetch(`/api/users/${encodeURIComponent(username)}?limit=60`);
 
         if (cancelled) return;
 
         setProfile(data.user);
         setPosts(Array.isArray(data.posts) ? data.posts : []);
-        setStats(data.stats || { postCount: 0 });
+        setStats(
+          data.stats || { postCount: 0, followerCount: 0, followingCount: 0, isFollowing: false }
+        );
       } catch (err) {
         if (!cancelled) setError(err?.message || "Failed to load profile");
       } finally {
@@ -61,7 +61,35 @@ export default function UserProfile() {
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [username, apiFetch]);
+
+  const canFollow = !!authUser && !!profile && !isOwnProfile;
+
+  async function toggleFollow() {
+    if (!canFollow) return;
+
+    try {
+      if (stats.isFollowing) {
+        await apiFetch(`/api/users/${encodeURIComponent(username)}/follow`, { method: "DELETE" });
+        setStats((s) => ({
+          ...s,
+          isFollowing: false,
+          followerCount: Math.max(0, (s.followerCount || 0) - 1),
+        }));
+      } else {
+        await apiFetch(`/api/users/${encodeURIComponent(username)}/follow`, { method: "POST" });
+        setStats((s) => ({
+          ...s,
+          isFollowing: true,
+          followerCount: (s.followerCount || 0) + 1,
+        }));
+      }
+    } catch (e) {
+      setError(e?.message || "Follow action failed");
+    }
+  }
+
+  const postImageSrc = (p) => apiUrl(p?.imagePath || p?.imageUrl || "");
 
   const title = useMemo(() => {
     if (profile?.username) return `@${profile.username}`;
@@ -117,13 +145,21 @@ export default function UserProfile() {
                 <div className="profile-top">
                   <div className="profile-name">@{profile?.username || username}</div>
 
-                  {isOwnProfile ? (
-                    <div className="profile-actions">
+                  <div className="profile-actions">
+                    {isOwnProfile ? (
                       <Link className="btn btn-cta" to="/upload">
                         + New Post
                       </Link>
-                    </div>
-                  ) : null}
+                    ) : canFollow ? (
+                      <button className="btn btn-cta" onClick={toggleFollow}>
+                        {stats?.isFollowing ? "Unfollow" : "Follow"}
+                      </button>
+                    ) : authUser ? null : (
+                      <Link className="btn" to="/login">
+                        Log in to follow
+                      </Link>
+                    )}
+                  </div>
                 </div>
 
                 <div className="profile-stats">
@@ -132,11 +168,11 @@ export default function UserProfile() {
                     <div className="stat-label">posts</div>
                   </div>
                   <div className="stat">
-                    <div className="stat-num">—</div>
+                    <div className="stat-num">{stats?.followerCount ?? 0}</div>
                     <div className="stat-label">followers</div>
                   </div>
                   <div className="stat">
-                    <div className="stat-num">—</div>
+                    <div className="stat-num">{stats?.followingCount ?? 0}</div>
                     <div className="stat-label">following</div>
                   </div>
                 </div>
@@ -166,7 +202,7 @@ export default function UserProfile() {
                     onClick={() => setOpenPost(p)}
                     title={`${p.petName} (${p.species})`}
                   >
-                    <img src={p.imageUrl} alt={p.petName} className="ig-tile-img" loading="lazy" />
+                    <img src={postImageSrc(p)} alt={p.petName} className="ig-tile-img" loading="lazy" />
                     <div className="ig-tile-overlay">
                       <div className="ig-tile-title">{p.petName}</div>
                       <div className="ig-tile-sub">{p.species}</div>
@@ -188,7 +224,7 @@ export default function UserProfile() {
 
             <div className="modal-body">
               <div className="modal-media">
-                <img src={openPost.imageUrl} alt={openPost.petName} className="modal-img" />
+                <img src={postImageSrc(openPost)} alt={openPost.petName} className="modal-img" />
               </div>
 
               <div className="modal-info">
