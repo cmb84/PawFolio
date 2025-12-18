@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useMemo } from "react";
 import { useAuth } from "../auth/AuthProvider";
-import { apiUrl } from "../lib/api";
+import { Link } from "react-router-dom";
 
 export default function Home() {
   const { user } = useAuth();
@@ -13,7 +12,7 @@ export default function Home() {
     return "Good evening";
   }, []);
 
-  // Fallback demo content (used only if API isn't ready)
+  // Local photos from public/img (served from site root)
   const samplePets = [
     {
       name: "Aki",
@@ -66,41 +65,8 @@ export default function Home() {
     },
   ];
 
-  const [posts, setPosts] = useState([]);
-  const [loadingPosts, setLoadingPosts] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(apiUrl("/api/posts/recent?limit=24"));
-        const data = await res.json().catch(() => ({}));
-        if (!cancelled && res.ok && Array.isArray(data?.posts)) {
-          setPosts(data.posts);
-        }
-      } catch {
-        // ignore; will fall back to sample pets
-      } finally {
-        if (!cancelled) setLoadingPosts(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const hasPosts = posts.length > 0;
-
-  // Pet of the Day = most recent upload (or demo)
-  const potd = hasPosts
-    ? posts[0]
-    : {
-        petName: samplePets[0].name,
-        species: samplePets[0].species,
-        imageUrl: samplePets[0].image,
-        caption: samplePets[0].description,
-        user: { username: samplePets[0].username },
-      };
+  // Pet of the Day (still local for now)
+  const potd = samplePets[0];
 
   return (
     <div className="page">
@@ -108,65 +74,66 @@ export default function Home() {
       <header className="hero pawfolio-hero">
         <div className="container">
           <h1 className="hero-title">
-            {greeting}{user?.username ? `, ${user.username}` : ""}! Welcome to{" "}
+            {greeting}
+            {user?.username ? `, ${user.username}` : ""}! Welcome to{" "}
             <span className="accent">PawFolio</span>
           </h1>
+
           <p className="hero-sub">
             Share adorable pets, discover new friends, and react with emojis. 🐾
           </p>
-          <div style={{ marginTop: 16 }}>
-            <a href="/about" className="btn btn-cta">Learn More</a>
-          </div>
+
+          {!user && (
+            <div style={{ marginTop: 16 }}>
+              <Link to="/login" className="btn btn-cta">
+                Sign in to explore the gallery
+              </Link>
+            </div>
+          )}
+
+          {user && (
+            <div style={{ marginTop: 16 }}>
+              <Link to="/upload" className="btn btn-cta">
+                Upload a pet
+              </Link>
+            </div>
+          )}
         </div>
       </header>
 
       <main className="container">
-        {/* Pet of the Day */}
-        <section className="home-card">
-          <div className="home-card-header"><h3>🐶 Pet of the Day</h3></div>
-          <div className="home-card-body">
+        {/* 🐶 Pet of the Day — ALWAYS visible */}
+        <section
+          className="card"
+          style={{
+            background: "var(--bg-0)",
+            borderRadius: 14,
+            padding: 16,
+            marginTop: 22,
+          }}
+        >
+          <div className="card-header">
+            <h3>🐶 Pet of the Day</h3>
+          </div>
+
+          <div className="card-body">
             <div className="potd">
-              <img className="potd-img" src={potd.imageUrl} alt={potd.petName} />
+              <img className="potd-img" src={potd.image} alt={potd.name} />
               <div className="potd-meta">
                 <h4>
-                  {potd.petName} <span className="badge">{potd.species}</span>
+                  {potd.name} <span className="badge">{potd.species}</span>
                 </h4>
-                <p>{potd.caption}</p>
-                {potd.user?.username ? (
-                  <p className="byline">
-                    by <Link className="byline-link" to={`/u/${potd.user.username}`}>@{potd.user.username}</Link>
-                  </p>
-                ) : null}
+                <p>{potd.description}</p>
+                <p className="byline">by @{potd.username}</p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Recent uploads */}
-        <section style={{ marginTop: 24 }}>
-          <h3 className="section-title">Recent</h3>
-
-          {loadingPosts ? (
-            <div className="section-note">Loading recent uploads…</div>
-          ) : hasPosts ? (
-            <div className="ig-grid">
-              {posts.map((p) => (
-                <article key={p.id} className="ig-card">
-                  <img src={p.imageUrl} alt={p.petName} className="ig-img" loading="lazy" />
-                  <div className="ig-meta">
-                    <div className="ig-title-row">
-                      <div className="ig-title">{p.petName}</div>
-                      <span className="badge">{p.species}</span>
-                    </div>
-                    <div className="ig-byline">
-                      by <Link className="byline-link" to={`/u/${p.user.username}`}>@{p.user.username}</Link>
-                    </div>
-                    {p.caption ? <p className="ig-caption">{p.caption}</p> : null}
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
+        {/* 🔐 Gallery — ONLY visible when signed in */}
+        {user && (
+          <section style={{ marginTop: 24 }}>
+            <h3 className="section-title">Gallery</h3>
             <div className="grid">
               {samplePets.map((p, i) => (
                 <div key={i} className="pet-card">
@@ -182,8 +149,8 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          )}
-        </section>
+          </section>
+        )}
       </main>
     </div>
   );

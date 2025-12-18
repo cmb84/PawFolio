@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import About from "./pages/About";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Dashboard from "./pages/Dashboard";
 import Upload from "./pages/Upload";
 import UserProfile from "./pages/UserProfile";
 
@@ -13,7 +14,11 @@ function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div style={{ textAlign: "center", padding: "2rem" }}>Loading...</div>;
+    return (
+      <div style={{ textAlign: "center", padding: "2rem" }}>
+        Loading...
+      </div>
+    );
   }
 
   if (!user) {
@@ -29,13 +34,21 @@ export default function App() {
       <Navbar />
 
       <Routes>
+        {/* 🔓 PUBLIC ROUTES */}
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* Dashboard removed (redundant). Keep a redirect for old bookmarks. */}
-        <Route path="/dashboard" element={<Navigate to="/" replace />} />
+        {/* 🔐 PROTECTED ROUTES */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/upload"
@@ -54,9 +67,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* Public profiles (Instagram-style) */}
-        <Route path="/u/:username" element={<UserProfile />} />
       </Routes>
 
       <Footer />
